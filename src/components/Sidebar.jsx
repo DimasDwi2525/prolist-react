@@ -31,6 +31,7 @@ const roleMapping = {
   engineering_admin: "engineer",
   engineer_supervisor: "manPower",
   drafter: "manPower",
+  site_engineer: "manPower",
   electrician_supervisor: "manPower",
   electrician: "manPower",
 
