@@ -19,13 +19,20 @@ import api from "../../api/api";
 import BoqModal from "./BoqModal";
 import SowModal from "./SowModal";
 import { getToken, getUser } from "../../utils/storage";
+import Swal from "sweetalert2";
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   "pdfjs-dist/build/pdf.worker.mjs",
   import.meta.url
 ).toString();
 
-export default function ViewPhcModal({ phcId, open, handleClose }) {
+export default function ViewPhcModal({
+  phcId,
+  open,
+  handleClose,
+  isFromApprovalPage = false,
+  approval,
+}) {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(true);
   const [project, setProject] = useState(null);
@@ -38,6 +45,8 @@ export default function ViewPhcModal({ phcId, open, handleClose }) {
   const [pdfUrl, setPdfUrl] = useState("");
   const [pdfLoading, setPdfLoading] = useState(false);
   const [pdfError, setPdfError] = useState(false);
+  const [pinModalOpen, setPinModalOpen] = useState(false);
+  const [pin, setPin] = useState("");
   const token = getToken();
   const user = getUser();
   const role = user?.role || "";
@@ -61,8 +70,8 @@ export default function ViewPhcModal({ phcId, open, handleClose }) {
             ...phc,
             costing_by_marketing: normalizeValue(phc.costing_by_marketing),
             boq: normalizeValue(phc.boq),
-            retention: phc.retention ? "A" : "NA",
-            warranty: phc.warranty ? "A" : "NA",
+            retention: normalizeValue(phc.retention),
+            warranty: normalizeValue(phc.warranty),
           });
         }
 
@@ -132,6 +141,49 @@ export default function ViewPhcModal({ phcId, open, handleClose }) {
     const year = date.getFullYear();
 
     return `${day}-${month}-${year}`;
+  };
+
+  const handleApprove = () => {
+    setPinModalOpen(true);
+  };
+
+  const handleConfirmApprove = async () => {
+    if (!pin) {
+      Swal.fire({
+        icon: "warning",
+        title: "PIN Required",
+        text: "PIN is required",
+      });
+      return;
+    }
+
+    try {
+      await api.post(`/approvals/${approval.id}/status`, {
+        status: "approved",
+        pin,
+      });
+      setPinModalOpen(false);
+      handleClose(); // Close modal after success
+
+      // Show success message and refresh approvals
+      Swal.fire({
+        icon: "success",
+        title: "Approval Successful",
+        text: "Item has been successfully approved",
+        timer: 2000,
+        showConfirmButton: false,
+      }).then(() => {
+        // Trigger refresh by dispatching custom event
+        window.dispatchEvent(new CustomEvent("approvalSuccess"));
+      });
+    } catch (err) {
+      console.error(err);
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: err.response?.data?.message || "Terjadi kesalahan",
+      });
+    }
   };
 
   if (loading) {
@@ -590,6 +642,11 @@ export default function ViewPhcModal({ phcId, open, handleClose }) {
         )}
       </DialogContent>
       <DialogActions>
+        {isFromApprovalPage && approval?.status === "pending" && (
+          <Button onClick={handleApprove} variant="contained" color="success">
+            Approve
+          </Button>
+        )}
         <Button onClick={handleClose} variant="outlined">
           Close
         </Button>
@@ -709,6 +766,32 @@ export default function ViewPhcModal({ phcId, open, handleClose }) {
             variant="outlined"
           >
             Close
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* PIN Modal for Approval */}
+      <Dialog
+        open={pinModalOpen}
+        onClose={() => setPinModalOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Confirm Approval</DialogTitle>
+        <DialogContent>
+          <TextField
+            label="PIN"
+            type="password"
+            fullWidth
+            value={pin}
+            onChange={(e) => setPin(e.target.value)}
+            sx={{ mt: 2 }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setPinModalOpen(false)}>Cancel</Button>
+          <Button onClick={handleConfirmApprove} variant="contained">
+            Confirm
           </Button>
         </DialogActions>
       </Dialog>

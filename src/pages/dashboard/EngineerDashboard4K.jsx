@@ -517,19 +517,19 @@ export default function EngineerDashboard4K() {
 
   const cards = [
     {
-      title: "Project Overdue",
+      title: "Project Overdue (POV)",
       value: stats.projectOverdue,
       color: { bgColor: "#ef4444", textColor: "#ffffff" },
       onViewClick: () => handleViewClick("overdue"),
     },
     {
-      title: "Target Due Less Than 1 Month",
+      title: "Project One Month Out (OMO)",
       value: stats.projectDueThisMonth,
       color: { bgColor: "#fbbf24", textColor: "#000000" },
       onViewClick: () => handleViewClick("dueThisMonth"),
     },
     {
-      title: "Target Due Greater Than 1 Month",
+      title: "Project On Track (OTP)",
       value: stats.projectOnTrack,
       color: { bgColor: "#10b981", textColor: "#ffffff" },
       onViewClick: () => handleViewClick("onTrack"),
@@ -588,8 +588,7 @@ export default function EngineerDashboard4K() {
                 className="font-semibold mb-4 flex-shrink-0 text-gray-800"
                 style={{ fontSize: "64px" }}
               >
-                <FaChartPie className="text-gray-800" /> Outstanding Project
-                Status
+                <FaChartPie className="text-gray-800" /> Open Project Status
               </h2>
               <div className="flex-1 flex justify-center items-center">
                 <div id="statusPie" className="w-full h-full"></div>
@@ -652,8 +651,8 @@ export default function EngineerDashboard4K() {
           {/* Target Project Due Less Than 1 Month */}
           <div className="bg-white shadow rounded-xl p-4 flex flex-col flex-1">
             <h2 className="text-3xl lg:text-4xl xl:text-5xl 2xl:text-6xl 3xl:text-7xl font-semibold mb-4 flex items-center gap-4">
-              <FaClock className="text-yellow-500" /> Target Project Due Less
-              Than 1 Month
+              <FaClock className="text-yellow-500" /> Project One Month Out
+              (OMO)
             </h2>
             {stats.projectDueThisMonthList.length === 0 ? (
               <p className="text-center text-gray-500 flex-1 flex items-center justify-center text-2xl">
@@ -701,8 +700,8 @@ export default function EngineerDashboard4K() {
           {/* Target Project Due Greater Than 1 Month */}
           <div className="bg-white shadow rounded-xl p-4 flex flex-col flex-1">
             <h2 className="text-3xl lg:text-4xl xl:text-5xl 2xl:text-6xl 3xl:text-7xl font-semibold mb-4 flex items-center gap-4">
-              <FaCalendarAlt className="text-indigo-500" /> Target Project Due
-              Greater Than 1 Month
+              <FaCalendarAlt className="text-indigo-500" /> Project On Track
+              (OTP)
             </h2>
             {stats.projectOnTrackList.length === 0 ? (
               <p className="text-center text-gray-500 flex-1 flex items-center justify-center text-2xl">

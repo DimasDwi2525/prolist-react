@@ -107,6 +107,11 @@ export default function ManPowerProjectTable() {
     fetchProjects();
   }, []);
 
+  // Reset page to 0 when search term changes
+  useEffect(() => {
+    setPage(0);
+  }, [searchTerm]);
+
   // Columns
   const columns = useMemo(
     () => [

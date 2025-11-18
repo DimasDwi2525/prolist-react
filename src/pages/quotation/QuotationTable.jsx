@@ -119,6 +119,11 @@ export default function QuotationTable() {
     fetchQuotations();
   }, []);
 
+  // Reset page to 0 when search term changes
+  useEffect(() => {
+    setPage(0);
+  }, [searchTerm]);
+
   // Handle filter changes
   const handleFilterChange = (newFilters) => {
     setFilters(newFilters);

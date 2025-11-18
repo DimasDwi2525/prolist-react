@@ -223,6 +223,11 @@ export default function ProjectFinishedSummary() {
     fetchData();
   }, [filters]);
 
+  // Reset page to 0 when search term changes
+  useEffect(() => {
+    setPage(0);
+  }, [searchTerm]);
+
   // Expose refresh function to window for modal communication
   useEffect(() => {
     window.parentRefreshProjects = async () => {

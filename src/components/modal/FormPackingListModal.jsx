@@ -63,6 +63,48 @@ export default function FormPackingListModal({
     }
   }, [open, mode, setFormValues, formValues.pl_number, formValues.pl_id]);
 
+  // Fetch existing data for edit mode
+  useEffect(() => {
+    if (open && mode === "edit" && formValues.pl_id) {
+      const fetchPackingList = async () => {
+        try {
+          const res = await api.get(`/packing-lists/${formValues.pl_id}`);
+          const data = res.data.data || res.data;
+          setFormValues({
+            pn_id: data.pn_id || "",
+            destination_id: String(data.destination_id) || "",
+            expedition_id: String(data.expedition_id) || "",
+            pl_date: data.pl_date
+              ? new Date(data.pl_date).toISOString().split("T")[0]
+              : "",
+            ship_date: data.ship_date
+              ? new Date(data.ship_date).toISOString().split("T")[0]
+              : "",
+            pl_type_id: String(data.pl_type_id) || "",
+            client_pic: data.client_pic || "",
+            int_pic: data.int_pic
+              ? typeof data.int_pic === "object"
+                ? String(data.int_pic.id)
+                : String(data.int_pic)
+              : "",
+            receive_date: data.receive_date
+              ? new Date(data.receive_date).toISOString().split("T")[0]
+              : "",
+            pl_return_date: data.pl_return_date
+              ? new Date(data.pl_return_date).toISOString().split("T")[0]
+              : "",
+            remark: data.remark || "",
+            pl_number: data.pl_number || "",
+            pl_id: data.pl_id || "",
+          });
+        } catch (err) {
+          console.error("Failed to fetch packing list for edit:", err);
+        }
+      };
+      fetchPackingList();
+    }
+  }, [open, mode, formValues.pl_id, setFormValues]);
+
   const handleInputChange = (field, value) =>
     setFormValues((prev) => ({ ...prev, [field]: value }));
 
@@ -180,8 +222,8 @@ export default function FormPackingListModal({
           {/* Project Autocomplete */}
           <Autocomplete
             size="small"
-            options={sortOptions(projects || [], "pn_number")}
-            getOptionLabel={(option) => option.pn_number || ""}
+            options={sortOptions(projects || [], "project_number")}
+            getOptionLabel={(option) => option.project_number || ""}
             loading={loadingData}
             value={
               projects?.find((p) => p.pn_number === formValues.pn_id) || null
@@ -219,14 +261,14 @@ export default function FormPackingListModal({
             getOptionLabel={(option) => option.destination || ""}
             loading={loadingData}
             value={
-              destinations?.find((d) => d.id === formValues.destination_id) ||
+              destinations?.find((d) => d.id == formValues.destination_id) ||
               null
             }
             onChange={(_, newValue) =>
               handleInputChange("destination_id", newValue ? newValue.id : "")
             }
             isOptionEqualToValue={(option, value) =>
-              option.id === value?.destination_id
+              option.id == value?.destination_id
             }
             renderInput={(params) => (
               <TextField
@@ -255,14 +297,13 @@ export default function FormPackingListModal({
             getOptionLabel={(option) => option.name || ""}
             loading={loadingData}
             value={
-              expeditions?.find((e) => e.id === formValues.expedition_id) ||
-              null
+              expeditions?.find((e) => e.id == formValues.expedition_id) || null
             }
             onChange={(_, newValue) =>
               handleInputChange("expedition_id", newValue ? newValue.id : "")
             }
             isOptionEqualToValue={(option, value) =>
-              option.id === value?.expedition_id
+              option.id == value?.expedition_id
             }
             renderInput={(params) => (
               <TextField
@@ -333,12 +374,12 @@ export default function FormPackingListModal({
             options={sortOptions(plTypes || [], "name")}
             getOptionLabel={(option) => option.name || ""}
             loading={loadingData}
-            value={plTypes?.find((p) => p.id === formValues.pl_type_id) || null}
+            value={plTypes?.find((p) => p.id == formValues.pl_type_id) || null}
             onChange={(_, newValue) =>
               handleInputChange("pl_type_id", newValue ? newValue.id : "")
             }
             isOptionEqualToValue={(option, value) =>
-              option.id === value?.pl_type_id
+              option.id == value?.pl_type_id
             }
             renderInput={(params) => (
               <TextField
@@ -366,12 +407,12 @@ export default function FormPackingListModal({
             options={sortOptions(users || [], "name")}
             getOptionLabel={(option) => option.name || ""}
             loading={loadingData}
-            value={users?.find((u) => u.id === formValues.int_pic) || null}
+            value={users?.find((u) => u.id == formValues.int_pic) || null}
             onChange={(_, newValue) =>
               handleInputChange("int_pic", newValue ? newValue.id : "")
             }
             isOptionEqualToValue={(option, value) =>
-              option.id === value?.int_pic
+              option.id == value?.int_pic
             }
             renderInput={(params) => (
               <TextField

@@ -233,6 +233,11 @@ export default function SalesReport() {
     fetchProjects();
   }, []);
 
+  // Reset page to 0 when search term changes
+  useEffect(() => {
+    setPage(0);
+  }, [searchTerm]);
+
   // === FILTER & PAGINATION ===
   const filteredData = useMemo(() => {
     let data = projects;

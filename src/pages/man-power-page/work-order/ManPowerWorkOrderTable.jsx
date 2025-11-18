@@ -12,7 +12,7 @@ import {
 import { ArrowLeft, Plus, Edit3, Eye } from "lucide-react";
 import { format } from "date-fns";
 import api from "../../../api/api";
-import WorkOrderFormModal from "../../../components/modal/WorkOrderFormModal";
+import ManPowerWorkOrderFormModal from "../../../components/modal/ManPowerWorkOrderFormModal";
 import ViewWorkOrderModal from "../../../components/modal/ViewWorkOrderModal";
 
 export default function ManPowerWorkOrderTable() {
@@ -65,7 +65,7 @@ export default function ManPowerWorkOrderTable() {
   // === HANDLE VIEW FUNCTION ===
   const handleView = async (woId) => {
     try {
-      const res = await api.get(`/man-power/work-orders/${woId}`);
+      const res = await api.get(`/work-order/detail/${woId}`);
       setSelectedWorkOrder(res.data.data); // load detail WO
       setOpenView(true); // buka modal view
     } catch (err) {
@@ -305,7 +305,7 @@ export default function ManPowerWorkOrderTable() {
         </div>
       </div>
       {openWO && (
-        <WorkOrderFormModal
+        <ManPowerWorkOrderFormModal
           open={openWO}
           onClose={handleModalClose}
           project={project}

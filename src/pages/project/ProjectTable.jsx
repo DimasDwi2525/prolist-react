@@ -25,6 +25,7 @@ import ProjectDetailsModal from "../../components/modal/ProjectDetailsModal";
 import ProjectDetailModalForAdmins from "../../components/modal/ProjectDetailModalForAdmins";
 import ViewProjectsModal from "../../components/modal/ViewProjectsModal";
 import ViewProjectsModalForFinance from "../../components/modal/ViewProjectsModalForFinance";
+import ViewProjectsModalForSuc from "../../components/modal/ViewProjectsModalForSuc";
 import { getUser } from "../../utils/storage";
 import LoadingOverlay from "../../components/loading/LoadingOverlay";
 import ColumnVisibilityModal from "../../components/ColumnVisibilityModal";
@@ -212,6 +213,9 @@ export default function ProjectTable() {
               } else if (financeRoles) {
                 setSelectedPnNumberForViewProjects(project.pn_number);
                 setOpenViewProjectsModal(true);
+              } else if (suc) {
+                setSelectedPnNumberForViewProjects(project.pn_number);
+                setOpenViewProjectsModal(true);
               } else {
                 setSelectedPnNumber(project.pn_number);
                 setOpenDetailsModal(true);
@@ -310,7 +314,15 @@ export default function ProjectTable() {
         width: 150,
       },
     ],
-    [marketingRoles, engineerRoles, suc, navigate, projects]
+    [
+      marketingRoles,
+      engineerRoles,
+      suc,
+      navigate,
+      projects,
+      adminRoles,
+      financeRoles,
+    ]
   );
 
   // Role-based filter
@@ -369,7 +381,7 @@ export default function ProjectTable() {
   else if (engineerRoles) roleGroup = "engineer";
   else if (suc) roleGroup = "warehouse";
   else if (financeRoles) roleGroup = "finance";
-  else if (userRole === "super_admin") roleGroup = "super_admin";
+  else if (adminRoles) roleGroup = "super_admin";
 
   const allowedColumns = roleGroup ? roleGroupColumnMap[roleGroup] : [];
   const filteredColumns = allColumns.filter((col) =>
@@ -483,6 +495,11 @@ export default function ProjectTable() {
   useEffect(() => {
     loadData();
   }, []);
+
+  // Reset page to 0 when search term changes
+  useEffect(() => {
+    setPage(0);
+  }, [searchTerm]);
 
   const handleFilterChange = (newFilters) => {
     setFilters(newFilters);
@@ -753,6 +770,15 @@ export default function ProjectTable() {
       {/* View Projects Modal */}
       {financeRoles ? (
         <ViewProjectsModalForFinance
+          open={openViewProjectsModal}
+          onClose={() => {
+            setOpenViewProjectsModal(false);
+            setSelectedPnNumberForViewProjects(null);
+          }}
+          pn_number={selectedPnNumberForViewProjects}
+        />
+      ) : suc ? (
+        <ViewProjectsModalForSuc
           open={openViewProjectsModal}
           onClose={() => {
             setOpenViewProjectsModal(false);

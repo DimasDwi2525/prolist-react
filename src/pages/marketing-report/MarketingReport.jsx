@@ -295,6 +295,11 @@ export default function MarketingReport() {
     fetchQuotations();
   }, []);
 
+  // Reset page to 0 when search term changes
+  useEffect(() => {
+    setPage(0);
+  }, [searchTerm]);
+
   // === FILTER & PAGINATION ===
   const filteredData = useMemo(() => {
     let data = filterBySearch(quotations, searchTerm);

@@ -100,6 +100,11 @@ export default function MaterialRequestTable() {
     loadUsers();
   }, [pn_number]);
 
+  // Reset page to 0 when search term changes
+  useEffect(() => {
+    setPage(0);
+  }, [searchTerm]);
+
   const loadUsers = async () => {
     try {
       const res = await api.get("/users");

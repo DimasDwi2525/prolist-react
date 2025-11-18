@@ -399,7 +399,7 @@ export default function ManPowerAllocationTable({
 
   const content = (
     <>
-      {canAddManPower && (
+      {canAddManPower && !embedded && (
         <div className="flex justify-end mb-2">
           {/* Tombol Add Allocation Compact */}
           <Tooltip title="Add Allocation">

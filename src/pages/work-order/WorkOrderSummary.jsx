@@ -196,6 +196,11 @@ export default function WorkOrderSummary() {
     fetchData();
   }, [filters]);
 
+  // Reset page to 0 when search term changes
+  useEffect(() => {
+    setPage(0);
+  }, [searchTerm]);
+
   const handleFilter = (newFilters) => {
     const payload = {
       year: newFilters.year,

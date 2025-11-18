@@ -198,6 +198,11 @@ export default function MaterialRequestPage() {
     loadData();
   }, []);
 
+  // Reset page to 0 when search term changes
+  useEffect(() => {
+    setPage(0);
+  }, [searchTerm]);
+
   return (
     <Box sx={{ position: "relative" }}>
       {/* Loading Overlay */}

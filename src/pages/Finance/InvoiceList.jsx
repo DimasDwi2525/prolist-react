@@ -211,6 +211,11 @@ export default function InvoiceList() {
     fetchData();
   }, [filters]);
 
+  // Reset page to 0 when search term changes
+  useEffect(() => {
+    setPage(0);
+  }, [searchTerm]);
+
   const handleFilter = (newFilters) => {
     const payload = {
       year: newFilters.year,

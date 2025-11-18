@@ -10,6 +10,7 @@ import {
   FaChevronRight,
   FaCheckCircle,
   FaPaypal,
+  FaShippingFast,
 } from "react-icons/fa";
 import Badge from "@mui/material/Badge";
 import api from "../api/api";
@@ -220,6 +221,11 @@ const menuByRole = {
           path: "/finance/retentions",
           icon: <FaPaypal />,
         },
+        {
+          name: "Delivery Orders",
+          path: "/finance/delivery-orders",
+          icon: <FaPaypal />,
+        },
       ],
     },
     { name: "Projects", path: "/projects", icon: <FaTools /> },
@@ -361,20 +367,16 @@ const menuByRole = {
         },
       ],
     },
+
     {
       name: "Material Request",
-      icon: <FaTools />,
-      submenu: [
-        {
-          name: "Material Request",
-          path: "/material-request",
-          icon: <FaTasks />,
-        },
-        { name: "Packing List", path: "/packing-list", icon: <FaTasks /> },
-      ],
+      path: "/material-request",
+      icon: <FaTasks />,
     },
+    { name: "Packing List", path: "/packing-list", icon: <FaTasks /> },
 
     { name: "Projects", path: "/projects", icon: <FaTools /> },
+    { name: "Approvall", path: "/approvall", icon: <FaCheckCircle /> },
   ],
   manPower: [
     {
@@ -404,12 +406,17 @@ const menuByRole = {
       ],
     },
 
-    { name: "Payments", path: "/finance/invoice-summary", icon: <FaPaypal /> },
+    {
+      name: "Invoice Summary",
+      path: "/finance/invoice-summary",
+      icon: <FaPaypal />,
+    },
     {
       name: "Invoices List",
       path: "/finance/invoice-list",
       icon: <FaPaypal />,
     },
+
     {
       name: "Request Invoices List",
       path: "/finance/request-invoice-list",
@@ -420,8 +427,12 @@ const menuByRole = {
       path: "/finance/retentions",
       icon: <FaPaypal />,
     },
+    {
+      name: "Delivery Orders",
+      path: "/finance/delivery-orders",
+      icon: <FaShippingFast />,
+    },
     { name: "Projects", path: "/projects", icon: <FaTools /> },
-    { name: "Approvall", path: "/approvall", icon: <FaCheckCircle /> },
   ],
 };
 

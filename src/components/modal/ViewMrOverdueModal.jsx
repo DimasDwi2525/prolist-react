@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { HotTable } from "@handsontable/react";
 import Handsontable from "handsontable";
 import {
@@ -9,14 +9,18 @@ import {
   Button,
   IconButton,
   TablePagination,
+  TextField,
+  Box,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import { formatDate } from "../../utils/FormatDate";
+import { filterBySearch } from "../../utils/filter";
 
 const ViewMrOverdueModal = ({ open, onClose, data }) => {
   const hotTableRef = useRef(null);
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const textRenderer = (instance, td, row, col, prop, value) => {
     td.innerText = value || "-";
@@ -100,7 +104,16 @@ const ViewMrOverdueModal = ({ open, onClose, data }) => {
     setPage(0);
   };
 
-  const paginatedData = data.slice(page * pageSize, page * pageSize + pageSize);
+  // Reset page to 0 when search term changes
+  useEffect(() => {
+    setPage(0);
+  }, [searchTerm]);
+
+  const filteredData = filterBySearch(data, searchTerm);
+  const paginatedData = filteredData.slice(
+    page * pageSize,
+    page * pageSize + pageSize
+  );
   const tableHeight = Math.min(pageSize * 50 + 50, 600);
 
   return (
@@ -121,6 +134,25 @@ const ViewMrOverdueModal = ({ open, onClose, data }) => {
         </IconButton>
       </DialogTitle>
       <DialogContent>
+        <Box mb={2}>
+          <TextField
+            size="small"
+            placeholder="Search MR overdue..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            sx={{
+              width: 240,
+              "& .MuiOutlinedInput-root": {
+                borderRadius: "8px",
+                paddingRight: 0,
+              },
+              "& .MuiInputBase-input": {
+                padding: "6px 10px",
+                fontSize: "0.875rem",
+              },
+            }}
+          />
+        </Box>
         <div className="table-wrapper">
           <div className="table-inner">
             <HotTable
@@ -146,7 +178,7 @@ const ViewMrOverdueModal = ({ open, onClose, data }) => {
         </div>
         <TablePagination
           component="div"
-          count={data.length}
+          count={filteredData.length}
           page={page}
           onPageChange={handleChangePage}
           rowsPerPage={pageSize}

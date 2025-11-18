@@ -6,8 +6,10 @@ import {
   DialogActions,
   Button,
   CircularProgress,
+  TextField,
 } from "@mui/material";
 import api from "../../api/api";
+import Swal from "sweetalert2";
 
 const formatDate = (value) => {
   if (!value) return "—";
@@ -29,9 +31,17 @@ const formatTime = (value) => {
 const display = (value) =>
   value !== undefined && value !== null && value !== "" ? value : "—";
 
-export default function ViewWorkOrderModal({ open, onClose, workOrderId }) {
+export default function ViewWorkOrderModal({
+  open,
+  onClose,
+  workOrderId,
+  isFromApprovalPage = false,
+  approval,
+}) {
   const [workOrder, setWorkOrder] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [pinModalOpen, setPinModalOpen] = useState(false);
+  const [pin, setPin] = useState("");
 
   // 🔹 Fetch work order detail ketika modal dibuka
   useEffect(() => {
@@ -68,6 +78,49 @@ export default function ViewWorkOrderModal({ open, onClose, workOrderId }) {
       link.remove();
     } catch (error) {
       console.error("Error downloading PDF:", error);
+    }
+  };
+
+  const handleApprove = () => {
+    setPinModalOpen(true);
+  };
+
+  const handleConfirmApprove = async () => {
+    if (!pin) {
+      Swal.fire({
+        icon: "warning",
+        title: "PIN Required",
+        text: "PIN is required",
+      });
+      return;
+    }
+
+    try {
+      await api.post(`/approvals/wo/${approval.id}/status`, {
+        status: "approved",
+        pin,
+      });
+      setPinModalOpen(false);
+      onClose(); // Close modal after success
+
+      // Show success message and refresh approvals
+      Swal.fire({
+        icon: "success",
+        title: "Approval Successful",
+        text: "Item has been successfully approved",
+        timer: 2000,
+        showConfirmButton: false,
+      }).then(() => {
+        // Trigger refresh by dispatching custom event
+        window.dispatchEvent(new CustomEvent("approvalSuccess"));
+      });
+    } catch (err) {
+      console.error(err);
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: err.response?.data?.message || "Terjadi kesalahan",
+      });
     }
   };
 
@@ -387,6 +440,11 @@ export default function ViewWorkOrderModal({ open, onClose, workOrderId }) {
       </DialogContent>
 
       <DialogActions>
+        {isFromApprovalPage && approval?.status === "pending" && (
+          <Button onClick={handleApprove} variant="contained" color="success">
+            Approve
+          </Button>
+        )}
         <Button onClick={onClose} variant="outlined" color="inherit">
           Close
         </Button>
@@ -394,6 +452,32 @@ export default function ViewWorkOrderModal({ open, onClose, workOrderId }) {
           Print / Download PDF
         </Button>
       </DialogActions>
+
+      {/* PIN Modal for Approval */}
+      <Dialog
+        open={pinModalOpen}
+        onClose={() => setPinModalOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Confirm Approval</DialogTitle>
+        <DialogContent>
+          <TextField
+            label="PIN"
+            type="password"
+            fullWidth
+            value={pin}
+            onChange={(e) => setPin(e.target.value)}
+            sx={{ mt: 2 }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setPinModalOpen(false)}>Cancel</Button>
+          <Button onClick={handleConfirmApprove} variant="contained">
+            Confirm
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Dialog>
   );
 }

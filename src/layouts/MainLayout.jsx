@@ -15,6 +15,18 @@ export default function MainLayout({ children }) {
 
   const [notifications, setNotifications] = useState([]);
   const [shownLogIds, setShownLogIds] = useState(new Set());
+  const [shownPhcIds, setShownPhcIds] = useState(new Set());
+  const [shownRequestInvoiceIds, setShownRequestInvoiceIds] = useState(
+    new Set()
+  );
+  const [shownNotifIds, setShownNotifIds] = useState(new Set());
+  const [shownLogApprovalIds, setShownLogApprovalIds] = useState(new Set());
+  const [shownWorkOrderCreatedIds, setShownWorkOrderCreatedIds] = useState(
+    new Set()
+  );
+  const [shownWorkOrderUpdatedIds, setShownWorkOrderUpdatedIds] = useState(
+    new Set()
+  );
 
   useEffect(() => {
     if (!user) return;
@@ -24,7 +36,7 @@ export default function MainLayout({ children }) {
     if (!token) return;
 
     api
-      .get("/notifications", {
+      .get("/notifications/all", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -66,9 +78,25 @@ export default function MainLayout({ children }) {
     const phcChannel = window.Echo.channel("phc.created")
       .listen(".phc.created", (e) => {
         console.log("🔥 PHC baru dibuat:", e);
-        if (e.user_ids.includes(user.id)) {
-          setNotifications((prev) => [e, ...prev]);
+        console.log("Current user ID:", user.id, "Type:", typeof user.id);
+        console.log(
+          "User IDs in event:",
+          e.user_ids,
+          "Types:",
+          e.user_ids.map((id) => typeof id)
+        );
+        if (
+          (e.user_ids.includes(String(user.id)) ||
+            e.user_ids.includes(Number(user.id))) &&
+          !shownPhcIds.has(e.id)
+        ) {
+          setShownPhcIds((prev) => new Set(prev).add(e.id));
+          setNotifications((prev) => [{ ...e, read_at: null }, ...prev]);
           toast.success(e.message, { duration: 5000 });
+        } else {
+          console.log(
+            "User not in list or already shown, no notification shown"
+          );
         }
       })
       .error((err) => console.error("❌ Echo channel error:", err));
@@ -76,11 +104,13 @@ export default function MainLayout({ children }) {
     const requestInvoiceChannel = window.Echo.channel("request.invoice.created")
       .listen(".request.invoice.created", (e) => {
         console.log("🔥 Request Invoice baru dibuat:", e);
-        if (e.user_ids.includes(user.id)) {
+        if (e.user_ids.includes(user.id) && !shownRequestInvoiceIds.has(e.id)) {
+          setShownRequestInvoiceIds((prev) => new Set(prev).add(e.id));
           const notification = {
             ...e,
             created_at: new Date().toISOString(),
             id: Date.now(), // temporary ID for real-time notifications
+            read_at: null,
           };
           setNotifications((prev) => [notification, ...prev]);
           toast.success(e.message, { duration: 5000 });
@@ -92,8 +122,22 @@ export default function MainLayout({ children }) {
       `App.Models.User.${user.id}`
     ).notification((notif) => {
       console.log("🔔 Notifikasi baru via notification:", notif);
-      setNotifications((prev) => [notif, ...prev]);
-      toast.success(notif.message || "Notifikasi baru!", { duration: 5000 });
+      if (!shownNotifIds.has(notif.id)) {
+        setShownNotifIds((prev) => new Set(prev).add(notif.id));
+        // Use the actual notification data structure from database
+        const notificationData = {
+          id: notif.id,
+          type: notif.type,
+          data: notif.data,
+          read_at: notif.read_at,
+          created_at: notif.created_at,
+          updated_at: notif.updated_at,
+        };
+        setNotifications((prev) => [notificationData, ...prev]);
+        toast.success(notif.data?.message || "Notifikasi baru!", {
+          duration: 5000,
+        });
+      }
     });
 
     // Listen to log events on public channel
@@ -105,7 +149,7 @@ export default function MainLayout({ children }) {
         if (e.user_ids.includes(user.id) && !shownLogIds.has(e.log_id)) {
           console.log("✅ Showing notification for log:", e.log_id);
           setShownLogIds((prev) => new Set(prev).add(e.log_id));
-          setNotifications((prev) => [e, ...prev]);
+          setNotifications((prev) => [{ ...e, read_at: null }, ...prev]);
           toast.success(e.message, { duration: 5000 });
         } else {
           console.log(
@@ -118,13 +162,66 @@ export default function MainLayout({ children }) {
     const logApprovalChannel = window.Echo.channel(`App.Models.User.${user.id}`)
       .listen(".log.approval.updated", (e) => {
         console.log("🔥 Log approval updated:", e);
-        setNotifications((prev) => [e, ...prev]);
-        toast.success(e.message || "Log approval updated", {
-          duration: 5000,
-        });
+        if (!shownLogApprovalIds.has(e.id)) {
+          setShownLogApprovalIds((prev) => new Set(prev).add(e.id));
+          setNotifications((prev) => [{ ...e, read_at: null }, ...prev]);
+          toast.success(e.message || "Log approval updated", {
+            duration: 5000,
+          });
+        }
       })
       .error((err) =>
         console.error("❌ Echo channel error for log approval:", err)
+      );
+
+    const workOrderCreatedChannel = window.Echo.channel("workorder.created")
+      .listen(".workorder.created", (e) => {
+        console.log("🔥 Work Order created event received:", e);
+        if (
+          e.user_ids.includes(user.id) &&
+          !shownWorkOrderCreatedIds.has(e.work_order_id)
+        ) {
+          setShownWorkOrderCreatedIds((prev) =>
+            new Set(prev).add(e.work_order_id)
+          );
+          const notification = {
+            ...e,
+            type: "work_order_created", // Add type for real-time notifications
+            created_at: new Date().toISOString(),
+            id: Date.now(), // temporary ID for real-time notifications
+            read_at: null,
+          };
+          setNotifications((prev) => [notification, ...prev]);
+          toast.success(e.message, { duration: 5000 });
+        }
+      })
+      .error((err) =>
+        console.error("❌ Echo channel error for work order created:", err)
+      );
+
+    const workOrderUpdatedChannel = window.Echo.channel("workorder.updated")
+      .listen(".workorder.updated", (e) => {
+        console.log("🔥 Work Order updated event received:", e);
+        if (
+          e.user_ids.includes(user.id) &&
+          !shownWorkOrderUpdatedIds.has(e.work_order_id)
+        ) {
+          setShownWorkOrderUpdatedIds((prev) =>
+            new Set(prev).add(e.work_order_id)
+          );
+          const notification = {
+            ...e,
+            type: "work_order_updated", // Add type for real-time notifications
+            created_at: new Date().toISOString(),
+            id: Date.now(), // temporary ID for real-time notifications
+            read_at: null,
+          };
+          setNotifications((prev) => [notification, ...prev]);
+          toast.success(e.message, { duration: 5000 });
+        }
+      })
+      .error((err) =>
+        console.error("❌ Echo channel error for work order updated:", err)
       );
 
     return () => {
@@ -133,11 +230,31 @@ export default function MainLayout({ children }) {
       notifChannel.stopListening("notification");
       logCreatedChannel.stopListening(".log.created");
       logApprovalChannel.stopListening(".log.approval.updated");
+      workOrderCreatedChannel.stopListening(".workorder.created");
+      workOrderUpdatedChannel.stopListening(".workorder.updated");
     };
   }, []); // only once
 
   const handleReadNotification = async (id) => {
-    await api.post(`/notifications/${id}/read`);
+    if (!id || id === "undefined") {
+      console.error("Invalid notification ID:", id);
+      return;
+    }
+
+    // Only mark as read in database for real database notifications (UUID format)
+    // Real-time notifications use Date.now() IDs and can't be marked as read in DB
+    const isDatabaseNotification = typeof id === "string" && id.includes("-");
+
+    if (isDatabaseNotification) {
+      try {
+        await api.post(`/notifications/${id}/read`);
+      } catch (error) {
+        console.error("Error marking notification as read:", error);
+        // Don't return here, still mark as read locally
+      }
+    }
+
+    // Always mark as read locally
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, read_at: new Date() } : n))
     );

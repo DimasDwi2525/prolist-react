@@ -59,6 +59,7 @@ import EngineerDashboard4K from "../pages/dashboard/EngineerDashboard4K";
 import ActivityLogPage from "../pages/activity-log/ActivityLogPage";
 import TaxTable from "../pages/Finance/TaxTable";
 import RetentionTable from "../pages/Finance/RetentionTable";
+import DeliveryOrderTable from "../pages/Finance/DeliveryOrderTable";
 import StatusMaterialRequestTable from "../pages/status-material-request/StatusMaterialRequestTable";
 import TypePackingListTable from "../pages/type-packing-list/TypePackingListTable";
 import ExpeditionTable from "../pages/expedition/ExpeditionTable";
@@ -346,6 +347,8 @@ function AppRoutes() {
                 "acc_fin_manager",
                 "acc_fin_supervisor",
                 "finance_administration",
+                "suc_manager",
+                "warehouse",
               ]}
             >
               <MainLayout>
@@ -1099,6 +1102,44 @@ function AppRoutes() {
             >
               <MainLayout>
                 <RetentionTable />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/finance/delivery-orders"
+          element={
+            <ProtectedRoute
+              roles={[
+                "acc_fin_manager",
+                "acc_fin_supervisor",
+                "finance_administration",
+                "super_admin",
+                "marketing_director",
+                "engineering_director",
+              ]}
+            >
+              <MainLayout>
+                <DeliveryOrderTable />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/finance/delivery-orders/:pn_id"
+          element={
+            <ProtectedRoute
+              roles={[
+                "acc_fin_manager",
+                "acc_fin_supervisor",
+                "finance_administration",
+                "super_admin",
+                "marketing_director",
+                "engineering_director",
+              ]}
+            >
+              <MainLayout>
+                <DeliveryOrderTable />
               </MainLayout>
             </ProtectedRoute>
           }

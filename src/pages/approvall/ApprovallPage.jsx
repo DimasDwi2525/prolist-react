@@ -34,10 +34,7 @@ export default function ApprovalPage() {
     pending: 0,
     rejected: 0,
   });
-  const [modalOpen, setModalOpen] = useState(false);
-  const [selectedApproval, setSelectedApproval] = useState(null);
-  const [statusToUpdate, setStatusToUpdate] = useState("");
-  const [pin, setPin] = useState("");
+
   const [alert, setAlert] = useState({
     open: false,
     message: "",
@@ -75,76 +72,18 @@ export default function ApprovalPage() {
 
   useEffect(() => {
     fetchApprovals();
-  }, []);
 
-  const handleActionClick = (approval, status) => {
-    setSelectedApproval(approval);
-    setStatusToUpdate(status);
-    setPin("");
-    setModalOpen(true);
-
-    // Simpan type untuk memilih endpoint
-    setSelectedApproval(() => ({
-      ...approval,
-      type: approval.type?.toLowerCase(),
-    }));
-  };
-
-  const handleConfirm = async () => {
-    if (!pin) {
-      setAlert({ open: true, message: "PIN harus diisi", severity: "warning" });
-      return;
-    }
-
-    if (!selectedApproval) {
-      setAlert({
-        open: true,
-        message: "Approval belum dipilih",
-        severity: "warning",
-      });
-      return;
-    }
-
-    try {
-      // Mapping approvable_type ke endpoint
-      const typeToEndpoint = {
-        PHC: `/approvals/${selectedApproval.id}/status`,
-        WorkOrder: `/approvals/wo/${selectedApproval.id}/status`,
-        Log: `/approvals/log/${selectedApproval.id}/status`,
-      };
-
-      // Ambil nama class tanpa namespace, misal App\Models\WorkOrder → WorkOrder
-      const approvableClass = selectedApproval.approvable_type
-        ? selectedApproval.approvable_type.split("\\").pop()
-        : "PHC";
-
-      const endpoint =
-        typeToEndpoint[approvableClass] ||
-        `/approvals/${selectedApproval.id}/status`;
-
-      await api.post(endpoint, {
-        status: statusToUpdate,
-        pin,
-      });
-
-      setAlert({
-        open: true,
-        message: `Approval ${statusToUpdate} berhasil`,
-        severity: "success",
-      });
-      setModalOpen(false);
-
-      // Reload approvals
+    // Listen for approval success event
+    const handleApprovalSuccess = () => {
       fetchApprovals();
-    } catch (err) {
-      console.error(err);
-      setAlert({
-        open: true,
-        message: err.response?.data?.message || "Terjadi kesalahan",
-        severity: "error",
-      });
-    }
-  };
+    };
+
+    window.addEventListener("approvalSuccess", handleApprovalSuccess);
+
+    return () => {
+      window.removeEventListener("approvalSuccess", handleApprovalSuccess);
+    };
+  }, []);
 
   const handleView = (approval) => {
     const type =
@@ -172,24 +111,6 @@ export default function ApprovalPage() {
       headerName: "Actions",
       width: 150,
       getActions: (params) => [
-        <GridActionsCellItem
-          key="approve"
-          icon={<CheckIcon color="success" />}
-          label="Approve"
-          onClick={() => handleActionClick(params.row, "approved")}
-          disabled={params.row?.status !== "pending"}
-          showInMenu={false}
-        />,
-
-        <GridActionsCellItem
-          key="reject"
-          icon={<CloseIcon color="error" />}
-          label="Reject"
-          onClick={() => handleActionClick(params.row, "rejected")}
-          disabled={params.row?.status !== "pending"}
-          showInMenu={false}
-        />,
-
         <GridActionsCellItem
           key="view"
           icon={<VisibilityIcon color="primary" />}
@@ -291,77 +212,6 @@ export default function ApprovalPage() {
         </div>
       </div>
 
-      {/* PIN Modal */}
-      <Dialog
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        maxWidth="sm"
-        fullWidth
-        sx={{
-          "& .MuiDialog-paper": {
-            borderRadius: 2,
-            boxShadow: "0 8px 32px rgba(0,0,0,0.1)",
-          },
-        }}
-      >
-        <DialogTitle
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            gap: 1,
-            bgcolor: "primary.main",
-            color: "white",
-            py: 2,
-          }}
-        >
-          <LockIcon />
-          <Typography variant="h6" component="div">
-            Confirm{" "}
-            {statusToUpdate.charAt(0).toUpperCase() + statusToUpdate.slice(1)}
-          </Typography>
-        </DialogTitle>
-        <DialogContent sx={{ pt: 3, pb: 2 }}>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Please enter your PIN to proceed with this action. This ensures the
-            security of your approval process.
-          </Typography>
-          <TextField
-            label="PIN"
-            type="password"
-            fullWidth
-            value={pin}
-            onChange={(e) => setPin(e.target.value)}
-            error={!pin && pin !== ""}
-            helperText={!pin && pin !== "" ? "PIN is required" : ""}
-            sx={{
-              "& .MuiOutlinedInput-root": {
-                borderRadius: 1,
-              },
-            }}
-          />
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button
-            onClick={() => setModalOpen(false)}
-            variant="outlined"
-            sx={{ borderRadius: 1, textTransform: "none" }}
-          >
-            Cancel
-          </Button>
-          <Button
-            variant="contained"
-            onClick={handleConfirm}
-            sx={{
-              borderRadius: 1,
-              textTransform: "none",
-              px: 3,
-            }}
-          >
-            Confirm
-          </Button>
-        </DialogActions>
-      </Dialog>
-
       {/* Snackbar Alert */}
       <Snackbar
         open={alert.open}
@@ -374,16 +224,31 @@ export default function ApprovalPage() {
         open={openModal}
         handleClose={() => setOpenModal(false)}
         phcId={selectedPhcId}
+        isFromApprovalPage={true}
+        approval={approvals.find(
+          (a) =>
+            a.approvable?.project?.phc?.id === selectedPhcId &&
+            a.status === "pending"
+        )}
       />
       <ViewWorkOrderModal
         open={openWorkOrderModal}
         onClose={() => setOpenWorkOrderModal(false)}
         workOrderId={selectedWorkOrderId}
+        isFromApprovalPage={true}
+        approval={approvals.find(
+          (a) =>
+            a.approvable?.id === selectedWorkOrderId && a.status === "pending"
+        )}
       />
       <ViewLogModal
         open={openLogModal}
         onClose={() => setOpenLogModal(false)}
         logId={selectedLogId}
+        isFromApprovalPage={true}
+        approval={approvals.find(
+          (a) => a.approvable?.id === selectedLogId && a.status === "pending"
+        )}
       />
     </Box>
   );

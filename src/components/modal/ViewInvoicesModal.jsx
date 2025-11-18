@@ -77,6 +77,11 @@ const ViewInvoicesModal = ({
     }
   }, [open, projectId, year]);
 
+  // Reset page to 0 when search term changes
+  useEffect(() => {
+    setPage(0);
+  }, [searchTerm]);
+
   const dateRenderer = (instance, td, row, col, prop, value) => {
     if (value === null || value === undefined || value === "") {
       td.innerText = "-";

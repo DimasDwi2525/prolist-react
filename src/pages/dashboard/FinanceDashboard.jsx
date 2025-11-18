@@ -209,6 +209,34 @@ export default function FinanceDashboard() {
             </div>
           </div>
         </div>
+
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center">
+            <div className="p-2 bg-indigo-100 rounded-lg">
+              <svg
+                className="w-6 h-6 text-indigo-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+                />
+              </svg>
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-600">
+                Total Delivery Order
+              </p>
+              <p className="text-2xl font-bold text-gray-900">
+                {data?.total_delivery_order || 0}
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Incomplete Payments Summary */}
