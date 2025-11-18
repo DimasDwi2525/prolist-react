@@ -390,6 +390,7 @@ const menuByRole = {
       icon: <FaFileInvoice />,
     },
     { name: "Projects", path: "/man-power/project", icon: <FaTools /> },
+    { name: "Approvall", path: "/approvall", icon: <FaCheckCircle /> },
   ],
 
   finance: [

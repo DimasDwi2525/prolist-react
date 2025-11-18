@@ -29,17 +29,22 @@ const DashboardCard = ({ title, value, color, icon, onViewClick }) => {
   const displayValue = value === 0 ? "No data" : value || "No data available";
   return (
     <div
-      className={`bg-white shadow rounded-xl p-3 sm:p-4 lg:p-5 xl:p-6 2xl:p-7 flex flex-col justify-center kpi-card cursor-pointer hover:shadow-lg transition-shadow`}
+      className="shadow rounded-xl p-3 sm:p-4 lg:p-5 xl:p-6 2xl:p-7 flex flex-col justify-center kpi-card cursor-pointer hover:shadow-lg transition-shadow"
+      style={{ backgroundColor: color.bgColor }}
       onClick={onViewClick}
     >
       {/* Value + Icon */}
       <div className="flex items-center justify-between">
         <div
-          className={`font-bold ${color.text} kpi-value text-lg lg:text-xl xl:text-2xl 2xl:text-3xl`}
+          className="font-bold kpi-value text-lg lg:text-xl xl:text-2xl 2xl:text-3xl"
+          style={{ color: color.textColor }}
         >
           {displayValue}
         </div>
-        <div className={`${color.bg} p-2 sm:p-3 lg:p-4 2xl:p-5 rounded-lg`}>
+        <div
+          className="p-2 sm:p-3 lg:p-4 2xl:p-5 rounded-lg"
+          style={{ color: color.textColor }}
+        >
           {React.cloneElement(icon, {
             size: window.innerWidth > 2500 ? 36 : 28,
             className: "icon-size",
@@ -48,7 +53,10 @@ const DashboardCard = ({ title, value, color, icon, onViewClick }) => {
       </div>
 
       {/* Title */}
-      <p className="mt-3 text-gray-600 kpi-title text-sm lg:text-base xl:text-lg 2xl:text-xl">
+      <p
+        className="mt-3 kpi-title text-sm lg:text-base xl:text-lg 2xl:text-xl"
+        style={{ color: color.textColor }}
+      >
         {title}
       </p>
     </div>
@@ -325,28 +333,28 @@ export default function EngineerDashboard() {
     {
       title: "Project Overdue (POV)",
       value: stats.projectOverdue,
-      color: { bg: "bg-red-100", text: "text-red-600" },
+      color: { bgColor: "#ef4444", textColor: "#ffffff" },
       icon: <FaExclamationTriangle size={22} />,
       onViewClick: () => handleViewClick("overdue"),
     },
     {
       title: "Project One Month Out (OMO)",
       value: stats.projectDueThisMonth,
-      color: { bg: "bg-yellow-100", text: "text-yellow-600" },
+      color: { bgColor: "#fbbf24", textColor: "#000000" },
       icon: <FaClock size={22} />,
       onViewClick: () => handleViewClick("dueThisMonth"),
     },
     {
       title: "Project On Track (OTP)",
       value: stats.projectOnTrack,
-      color: { bg: "bg-purple-100", text: "text-purple-600" },
+      color: { bgColor: "#10b981", textColor: "#ffffff" },
       icon: <FaCheckCircle size={22} />,
       onViewClick: () => handleViewClick("onTrack"),
     },
     {
       title: "Total Open Project (TOP)",
       value: stats.totalOutstandingProjects,
-      color: { bg: "bg-orange-100", text: "text-orange-600" },
+      color: { bgColor: "#0074A8", textColor: "#ffffff" },
       icon: <FaProjectDiagram size={22} />,
     },
   ];

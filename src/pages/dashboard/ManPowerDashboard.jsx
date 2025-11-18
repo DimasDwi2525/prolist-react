@@ -6,34 +6,34 @@ import {
   FaClock,
   FaCheckCircle,
   FaExclamationTriangle,
-  FaUsersCog,
   FaCalendarAlt,
 } from "react-icons/fa";
 import api from "../../api/api";
 import LoadingScreen from "../../components/loading/loadingScreen";
 import { formatDate } from "../../utils/FormatDate";
 import { Modal, Box, Typography, IconButton } from "@mui/material";
-import { Close, Visibility } from "@mui/icons-material";
-
-const dateRenderer = (instance, td, row, col, prop, value) => {
-  td.innerText = formatDate(value);
-  return td;
-};
+import { Close } from "@mui/icons-material";
 
 const DashboardCard = ({ title, value, color, icon, onViewClick }) => {
   const displayValue = value === 0 ? "No data" : value || "No data available";
   return (
     <div
-      className={`bg-white shadow rounded-xl p-3 sm:p-4 lg:p-6 xl:p-8 2xl:p-10 flex flex-col justify-center kpi-card relative`}
+      className="shadow rounded-xl p-3 sm:p-4 lg:p-6 xl:p-8 2xl:p-10 flex flex-col justify-center kpi-card cursor-pointer hover:shadow-lg transition-shadow"
+      style={{ backgroundColor: color.bgColor }}
+      onClick={onViewClick}
     >
       {/* Value + Icon */}
       <div className="flex items-center justify-between">
         <div
-          className={`font-bold ${color.text} kpi-value text-lg lg:text-xl xl:text-2xl 2xl:text-3xl`}
+          className="font-bold kpi-value text-lg lg:text-xl xl:text-2xl 2xl:text-3xl"
+          style={{ color: color.textColor }}
         >
           {displayValue}
         </div>
-        <div className={`${color.bg} p-2 sm:p-3 lg:p-4 2xl:p-5 rounded-lg`}>
+        <div
+          className="p-2 sm:p-3 lg:p-4 2xl:p-5 rounded-lg"
+          style={{ color: color.textColor }}
+        >
           {React.cloneElement(icon, {
             size: window.innerWidth > 2500 ? 36 : 28,
             className: "icon-size",
@@ -42,32 +42,19 @@ const DashboardCard = ({ title, value, color, icon, onViewClick }) => {
       </div>
 
       {/* Title */}
-      <p className="mt-3 text-gray-600 kpi-title text-sm lg:text-base xl:text-lg 2xl:text-xl">
+      <p
+        className="mt-3 kpi-title text-sm lg:text-base xl:text-lg 2xl:text-xl"
+        style={{ color: color.textColor }}
+      >
         {title}
       </p>
-
-      {/* View Button */}
-      {onViewClick && (
-        <IconButton
-          onClick={onViewClick}
-          sx={{
-            position: "absolute",
-            top: 8,
-            right: 8,
-            color: "#6b7280",
-            "&:hover": { color: "#374151" },
-          }}
-        >
-          <Visibility fontSize="small" />
-        </IconButton>
-      )}
     </div>
   );
 };
 
 export default function ManPowerDashboard() {
   const [stats, setStats] = useState(null);
-  const [workOrdersThisMonth, setWorkOrdersThisMonth] = useState([]);
+
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalData, setModalData] = useState([]);
@@ -79,7 +66,7 @@ export default function ManPowerDashboard() {
       .get("/man-power/dashboard")
       .then((res) => {
         setStats(res.data);
-        setWorkOrdersThisMonth(res.data.workOrdersThisMonth || []);
+
         setLoading(false);
       })
       .catch((err) => {
@@ -97,8 +84,9 @@ export default function ManPowerDashboard() {
     if (type === "overdue") {
       setModalData(stats.top5Overdue);
       setModalColumns([
-        { data: "pn_number", title: "PN Number" },
+        { data: "project_number", title: "Project Number" },
         { data: "project_name", title: "Project Name" },
+        { data: "client_name", title: "Client Name" },
         { data: "pic", title: "PIC" },
         {
           data: "target_dates",
@@ -116,8 +104,9 @@ export default function ManPowerDashboard() {
     } else if (type === "dueThisMonth") {
       setModalData(stats.projectDueThisMonthList);
       setModalColumns([
-        { data: "pn_number", title: "PN Number" },
+        { data: "project_number", title: "Project Number" },
         { data: "project_name", title: "Project Name" },
+        { data: "client_name", title: "Client Name" },
         { data: "pic", title: "PIC" },
         {
           data: "target_dates",
@@ -134,8 +123,9 @@ export default function ManPowerDashboard() {
     } else if (type === "onTrack") {
       setModalData(stats.projectOnTrackList);
       setModalColumns([
-        { data: "pn_number", title: "PN Number" },
+        { data: "project_number", title: "Project Number" },
         { data: "project_name", title: "Project Name" },
+        { data: "client_name", title: "Client Name" },
         { data: "pic", title: "PIC" },
         {
           data: "target_dates",
@@ -149,55 +139,30 @@ export default function ManPowerDashboard() {
         { data: "status", title: "Status" },
       ]);
       setModalTitle("On Track Projects");
-    } else if (type === "workOrders") {
-      setModalData(workOrdersThisMonth.slice(0, 10));
+    } else if (type === "totalActive") {
+      setModalData(
+        stats.projectOnTrackList.concat(
+          stats.projectDueThisMonthList,
+          stats.top5Overdue
+        )
+      );
       setModalColumns([
+        { data: "project_number", title: "Project Number" },
+        { data: "project_name", title: "Project Name" },
+        { data: "client_name", title: "Client Name" },
+        { data: "pic", title: "PIC" },
         {
-          data: "wo_kode_no",
-          title: "WO Code",
-          type: "text",
-          editor: false,
-          width: 120,
+          data: "target_dates",
+          title: "Target Date",
+          renderer: (instance, td, row, col, prop, value) => {
+            const displayValue = value ? formatDate(value) : "";
+            td.innerHTML = displayValue;
+            return td;
+          },
         },
-        {
-          data: "wo_date",
-          title: "WO Date",
-          type: "date",
-          dateFormat: "YYYY-MM-DD",
-          editor: false,
-          width: 100,
-          renderer: dateRenderer,
-        },
-        {
-          data: "project_name",
-          title: "Project Name",
-          type: "text",
-          editor: false,
-          width: 150,
-        },
-        {
-          data: "client_name",
-          title: "Client Name",
-          type: "text",
-          editor: false,
-          width: 150,
-        },
-        {
-          data: "created_by",
-          title: "Created By",
-          type: "text",
-          editor: false,
-          width: 100,
-        },
-        {
-          data: "pic_names",
-          title: "PIC Names",
-          type: "text",
-          editor: false,
-          width: 120,
-        },
+        { data: "status", title: "Status" },
       ]);
-      setModalTitle("Work Orders This Month");
+      setModalTitle("Total Active Projects");
     } else {
       setModalData([]);
       setModalColumns([]);
@@ -210,30 +175,30 @@ export default function ManPowerDashboard() {
     {
       title: "Project Outstanding (Overdue)",
       value: stats.projectOverdue,
-      color: { bg: "bg-red-100", text: "text-red-600" },
+      color: { bgColor: "#ef4444", textColor: "#ffffff" },
       icon: <FaExclamationTriangle size={22} />,
       onViewClick: () => handleViewClick("overdue"),
     },
     {
       title: "Due This Month",
       value: stats.projectDueThisMonth,
-      color: { bg: "bg-yellow-100", text: "text-yellow-600" },
+      color: { bgColor: "#fbbf24", textColor: "#000000" },
       icon: <FaClock size={22} />,
       onViewClick: () => handleViewClick("dueThisMonth"),
     },
     {
       title: "On Track Projects (Not Overdue)",
       value: stats.projectOnTrack,
-      color: { bg: "bg-green-100", text: "text-green-600" },
+      color: { bgColor: "#10b981", textColor: "#ffffff" },
       icon: <FaCheckCircle size={22} />,
       onViewClick: () => handleViewClick("onTrack"),
     },
     {
-      title: "Work Orders (This Month)",
-      value: stats.totalWorkOrders,
-      color: { bg: "bg-blue-100", text: "text-blue-600" },
-      icon: <FaUsersCog size={22} />,
-      onViewClick: () => handleViewClick("workOrders"),
+      title: "Total Active Projects",
+      value: stats.totalActiveProjects,
+      color: { bgColor: "#0074A8", textColor: "#ffffff" },
+      icon: <FaProjectDiagram size={22} />,
+      onViewClick: () => handleViewClick("totalActive"),
     },
   ];
 
@@ -246,136 +211,54 @@ export default function ManPowerDashboard() {
         ))}
       </div>
 
-      {/* Utilization + Top 5 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="bg-white shadow rounded-xl p-6 flex flex-col min-h-[300px] gap-4">
-          <h2 className="text-base lg:text-lg font-semibold flex items-center gap-2">
-            <FaUsersCog className="text-blue-500" /> Work Orders This Month
-          </h2>
-          {workOrdersThisMonth.length === 0 ? (
-            <p className="text-center text-gray-500 mt-4">
-              No work orders this month.
-            </p>
-          ) : (
-            <div className="table-wrapper">
-              <div className="table-inner">
-                <HotTable
-                  data={workOrdersThisMonth.slice(0, 10)}
-                  colHeaders={["WO Code", "Project Name", "Status", "End Date"]}
-                  columns={[
-                    {
-                      data: "wo_kode_no",
-                      title: "WO Code",
-                      type: "text",
-                      editor: false,
-                      width: 120,
+      {/* Top 5 Overdue Projects */}
+      <div className="bg-white shadow rounded-xl p-6 flex flex-col min-h-[300px]">
+        <h2 className="text-base lg:text-lg font-semibold flex items-center gap-2">
+          <FaProjectDiagram className="text-blue-500" /> Top 5 Overdue Projects
+        </h2>
+        {stats.top5Overdue.length === 0 ? (
+          <p className="text-center text-gray-500 mt-4">No overdue projects.</p>
+        ) : (
+          <div className="table-wrapper">
+            <div className="table-inner">
+              <HotTable
+                data={stats.top5Overdue}
+                colHeaders={[
+                  "Project Number",
+                  "Project Name",
+                  "Client Name",
+                  "PIC",
+                  "Target Date",
+                  "Delay (days)",
+                  "Status",
+                ]}
+                columns={[
+                  { data: "project_number", type: "text", editor: false },
+                  { data: "project_name", type: "text", editor: false },
+                  { data: "client_name", type: "text", editor: false },
+                  { data: "pic", type: "text", editor: false },
+                  {
+                    data: "target_dates",
+                    type: "date",
+                    dateFormat: "YYYY-MM-DD",
+                    editor: false,
+                    renderer: (instance, td, row, col, prop, value) => {
+                      const displayValue = value ? formatDate(value) : "";
+                      td.innerHTML = displayValue;
+                      return td;
                     },
-                    {
-                      data: "wo_date",
-                      title: "WO Date",
-                      type: "date",
-                      dateFormat: "YYYY-MM-DD",
-                      editor: false,
-                      width: 100,
-                      renderer: dateRenderer,
-                    },
-                    {
-                      data: "project_name",
-                      title: "Project Name",
-                      type: "text",
-                      editor: false,
-                      width: 150,
-                    },
-                    {
-                      data: "client_name",
-                      title: "Client Name",
-                      type: "text",
-                      editor: false,
-                      width: 150,
-                      renderer: (instance, td, row) => {
-                        const form = workOrdersThisMonth[row];
-                        td.innerText =
-                          form?.client?.name ||
-                          form?.quotation?.client?.name ||
-                          "-";
-                        return td;
-                      },
-                    },
-                    {
-                      data: "created_by",
-                      title: "Created By",
-                      type: "text",
-                      editor: false,
-                      width: 100,
-                    },
-                    {
-                      data: "pic_names",
-                      title: "PIC Names",
-                      type: "text",
-                      editor: false,
-                      width: 120,
-                    },
-                  ]}
-                  stretchH="all"
-                  height={largeTableHeight}
-                  licenseKey="non-commercial-and-evaluation"
-                  className="ht-theme-horizon"
-                  manualColumnResize
-                />
-              </div>
+                  },
+                  { data: "delay_days", type: "numeric", editor: false },
+                  { data: "status", type: "text", editor: false },
+                ]}
+                stretchH="all"
+                height={largeTableHeight}
+                licenseKey="non-commercial-and-evaluation"
+                className="ht-theme-horizon"
+              />
             </div>
-          )}
-        </div>
-
-        <div className="bg-white shadow rounded-xl p-6 flex flex-col min-h-[300px]">
-          <h2 className="text-base lg:text-lg font-semibold flex items-center gap-2">
-            <FaProjectDiagram className="text-blue-500" /> Top 5 Overdue
-            Projects
-          </h2>
-          {stats.top5Overdue.length === 0 ? (
-            <p className="text-center text-gray-500 mt-4">
-              No overdue projects.
-            </p>
-          ) : (
-            <div className="table-wrapper">
-              <div className="table-inner">
-                <HotTable
-                  data={stats.top5Overdue}
-                  colHeaders={[
-                    "PN Number",
-                    "Project Name",
-                    "PIC",
-                    "Target Date",
-                    "Delay (days)",
-                    "Status",
-                  ]}
-                  columns={[
-                    { data: "pn_number", type: "text", editor: false },
-                    { data: "project_name", type: "text", editor: false },
-                    { data: "pic", type: "text", editor: false },
-                    {
-                      data: "target_dates",
-                      type: "date",
-                      dateFormat: "YYYY-MM-DD",
-                      editor: false,
-                      renderer: (instance, td, row, col, prop, value) => {
-                        const displayValue = value ? formatDate(value) : "";
-                        td.innerHTML = displayValue;
-                        return td;
-                      },
-                    },
-                    { data: "delay_days", type: "numeric", editor: false },
-                    { data: "status", type: "text", editor: false },
-                  ]}
-                  stretchH="all"
-                  height={largeTableHeight}
-                  licenseKey="non-commercial-and-evaluation"
-                  className="ht-theme-horizon"
-                />
-              </div>
-            </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
       {/* Upcoming Projects */}
       <div className="bg-white shadow rounded-xl p-6 flex flex-col min-h-[200px]">
@@ -394,14 +277,16 @@ export default function ManPowerDashboard() {
                 <HotTable
                   data={stats.upcomingProjects}
                   colHeaders={[
-                    "PN Number",
+                    "Project Number",
                     "Project Name",
+                    "Client Name",
                     "Target Date",
                     "Status",
                   ]}
                   columns={[
-                    { data: "pn_number", type: "text" },
+                    { data: "project_number", type: "text" },
                     { data: "project_name", type: "text" },
+                    { data: "client_name", type: "text" },
                     {
                       data: "target_dates",
                       type: "date",

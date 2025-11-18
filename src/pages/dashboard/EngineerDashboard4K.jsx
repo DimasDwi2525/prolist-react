@@ -206,12 +206,12 @@ export default function EngineerDashboard4K() {
               color: "#ef4444",
             },
             {
-              name: "Target Due Less Than 1 Month",
+              name: "Project One Month Out (OMO)",
               y: data.statusCounts[1],
               color: "#fbbf24",
             },
             {
-              name: "Target Due Greater Than 1 Month",
+              name: "Project On Track (OTP)",
               y: data.statusCounts[2],
               color: "#10b981",
             },
@@ -705,7 +705,7 @@ export default function EngineerDashboard4K() {
             </h2>
             {stats.projectOnTrackList.length === 0 ? (
               <p className="text-center text-gray-500 flex-1 flex items-center justify-center text-2xl">
-                No upcoming projects in the next 30 days.
+                No projects in the next 30 days.
               </p>
             ) : (
               <div

@@ -349,6 +349,12 @@ function AppRoutes() {
                 "finance_administration",
                 "suc_manager",
                 "warehouse",
+                "engineer",
+                "engineer_supervisor",
+                "electrician_supervisor",
+                "site_engineer",
+                "electrician",
+                "drafter",
               ]}
             >
               <MainLayout>
