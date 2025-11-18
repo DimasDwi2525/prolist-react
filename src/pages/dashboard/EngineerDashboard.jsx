@@ -384,7 +384,7 @@ export default function EngineerDashboard() {
       <div className="grid grid-cols-1 gap-8">
         <div className="bg-white shadow rounded-xl p-6 flex flex-col min-h-[300px]">
           <h2 className="text-base lg:text-lg font-semibold flex items-center gap-2">
-            <FaProjectDiagram className="text-blue-500" /> Project Overdue
+            <FaProjectDiagram className="text-blue-500" /> Project Overdue (POV)
           </h2>
           {stats.top5Overdue.length === 0 ? (
             <p className="text-center text-gray-500 mt-4">
@@ -446,11 +446,74 @@ export default function EngineerDashboard() {
           )}
         </div>
       </div>
+      {/* Project One Month Out */}
+      <div className="bg-white shadow rounded-xl p-6 flex flex-col min-h-[200px]">
+        <h2 className="text-base lg:text-lg font-semibold flex items-center gap-2">
+          <FaClock className="text-yellow-500" /> Project One Month Out (OMO)
+        </h2>
+        <div className="flex-1 mt-4">
+          {stats.projectDueThisMonthList.length === 0 ? (
+            <p className="text-center text-gray-500 mt-4">
+              No projects due this month.
+            </p>
+          ) : (
+            <div className="table-wrapper">
+              <div className="table-inner">
+                <HotTable
+                  data={stats.projectDueThisMonthList}
+                  colHeaders={[
+                    "Project Number",
+                    "Project Name",
+                    "Client Name",
+                    "PIC",
+                    "Target Date",
+                    "Status",
+                  ]}
+                  columns={[
+                    { data: "project_number", type: "text", editor: false },
+                    { data: "project_name", type: "text", editor: false },
+                    {
+                      data: "client_name",
+                      title: "Client Name",
+                      type: "text",
+                      editor: false,
+                      renderer: (instance, td, row, col, prop, value) => {
+                        td.innerText = value || "-";
+                        return td;
+                      },
+                    },
+                    { data: "pic", type: "text", editor: false },
+                    {
+                      data: "target_dates",
+                      type: "date",
+                      dateFormat: "YYYY-MM-DD",
+                      editor: false,
+                      renderer: (instance, td, row, col, prop, value) => {
+                        const displayValue = value ? formatDate(value) : "";
+                        td.innerHTML = displayValue;
+                        return td;
+                      },
+                    },
+                    { data: "status", type: "text", editor: false },
+                  ]}
+                  stretchH="all"
+                  height={calculateTableHeight(
+                    stats.projectDueThisMonthList.length,
+                    200,
+                    400
+                  )}
+                  className="ht-theme-horizon"
+                  licenseKey="non-commercial-and-evaluation"
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
       {/* Upcoming Projects */}
       <div className="bg-white shadow rounded-xl p-6 flex flex-col min-h-[200px]">
         <h2 className="text-base lg:text-lg font-semibold flex items-center gap-2">
-          <FaCalendarAlt className="text-indigo-500" /> Target Project Less Than
-          1 Month
+          <FaCalendarAlt className="text-indigo-500" /> Project On Track (OTP)
         </h2>
         <div className="flex-1 mt-4">
           {stats.upcomingProjects.length === 0 ? (

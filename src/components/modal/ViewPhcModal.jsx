@@ -214,7 +214,8 @@ export default function ViewPhcModal({
           alignItems: "center",
         }}
       >
-        📄 View Project Handover Checklist
+        📄 View Project Handover Checklist - {project?.project_number} -{" "}
+        {project?.project_name}
         <IconButton
           aria-label="close"
           onClick={handleClose}

@@ -229,9 +229,7 @@ export default function OutstandingProjectsTable() {
         alignItems="center"
         mb={2}
       >
-        <Typography variant="h5">
-          List Project Outstanding Tahun {currentYear}
-        </Typography>
+        <Typography variant="h5">Open Projects - {currentYear}</Typography>
 
         <TextField
           size="small"

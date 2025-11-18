@@ -27,6 +27,7 @@ export default function MainLayout({ children }) {
   const [shownWorkOrderUpdatedIds, setShownWorkOrderUpdatedIds] = useState(
     new Set()
   );
+  const [projects, setProjects] = useState([]);
 
   useEffect(() => {
     if (!user) return;
@@ -48,13 +49,26 @@ export default function MainLayout({ children }) {
       .catch((err) => {
         console.error("❌ Error fetch notifikasi:", err);
       });
-  }, []); // hanya sekali untuk notifikasi
 
-  // No need to fetch projects, assume user listens to all possible channels or specific ones
+    // Fetch user projects for log approval channels
+    api
+      .get("/projects", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+      .then((res) => {
+        console.log("📥 Projects fetched:", res.data);
+        setProjects(res.data?.data || []);
+      })
+      .catch((err) => {
+        console.error("❌ Error fetch projects:", err);
+      });
+  }, []); // hanya sekali untuk notifikasi dan projects
 
   useEffect(() => {
     // Listen realtime notifikasi baru
-    if (!user || !getToken()) return;
+    if (!user || !getToken() || projects.length === 0) return;
 
     const token = getToken();
 
@@ -149,7 +163,16 @@ export default function MainLayout({ children }) {
         if (e.user_ids.includes(user.id) && !shownLogIds.has(e.log_id)) {
           console.log("✅ Showing notification for log:", e.log_id);
           setShownLogIds((prev) => new Set(prev).add(e.log_id));
-          setNotifications((prev) => [{ ...e, read_at: null }, ...prev]);
+          setNotifications((prev) => [
+            {
+              ...e,
+              type: "log_created",
+              data: { log_id: e.log_id, message: e.message },
+              id: Date.now(),
+              read_at: null,
+            },
+            ...prev,
+          ]);
           toast.success(e.message, { duration: 5000 });
         } else {
           console.log(
@@ -159,20 +182,39 @@ export default function MainLayout({ children }) {
       })
       .error((err) => console.error("❌ Echo channel error:", err));
 
-    const logApprovalChannel = window.Echo.channel(`App.Models.User.${user.id}`)
-      .listen(".log.approval.updated", (e) => {
-        console.log("🔥 Log approval updated:", e);
-        if (!shownLogApprovalIds.has(e.id)) {
-          setShownLogApprovalIds((prev) => new Set(prev).add(e.id));
-          setNotifications((prev) => [{ ...e, read_at: null }, ...prev]);
-          toast.success(e.message || "Log approval updated", {
-            duration: 5000,
-          });
-        }
-      })
-      .error((err) =>
-        console.error("❌ Echo channel error for log approval:", err)
+    // Listen to log approval updates on project-specific channels
+    const logApprovalChannels = projects.map((project) => {
+      const channelName = `logs.project.${project.id}`;
+      console.log(
+        `🔧 Setting up log approval listener for project ${project.id} on channel ${channelName}`
       );
+      return window.Echo.channel(channelName)
+        .listen(".log.approval.updated", (e) => {
+          console.log("🔥 Log approval updated:", e);
+          if (!shownLogApprovalIds.has(e.id)) {
+            setShownLogApprovalIds((prev) => new Set(prev).add(e.id));
+            setNotifications((prev) => [
+              {
+                ...e,
+                type: "log_update",
+                data: { log_id: e.log_id, message: e.message },
+                id: Date.now(),
+                read_at: null,
+              },
+              ...prev,
+            ]);
+            toast.success(e.message || "Log approval updated", {
+              duration: 5000,
+            });
+          }
+        })
+        .error((err) =>
+          console.error(
+            `❌ Echo channel error for log approval on project ${project.id}:`,
+            err
+          )
+        );
+    });
 
     const workOrderCreatedChannel = window.Echo.channel("workorder.created")
       .listen(".workorder.created", (e) => {
@@ -229,7 +271,10 @@ export default function MainLayout({ children }) {
       requestInvoiceChannel.stopListening(".request.invoice.created");
       notifChannel.stopListening("notification");
       logCreatedChannel.stopListening(".log.created");
-      logApprovalChannel.stopListening(".log.approval.updated");
+      // Stop listening to all log approval channels
+      logApprovalChannels.forEach((channel) => {
+        channel.stopListening(".log.approval.updated");
+      });
       workOrderCreatedChannel.stopListening(".workorder.created");
       workOrderUpdatedChannel.stopListening(".workorder.updated");
     };

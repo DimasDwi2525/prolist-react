@@ -355,6 +355,7 @@ function AppRoutes() {
                 "site_engineer",
                 "electrician",
                 "drafter",
+                "site_engineer",
               ]}
             >
               <MainLayout>
@@ -787,6 +788,13 @@ function AppRoutes() {
                 "engineer",
                 "super_admin",
                 "marketing_director",
+                "site_engineer",
+                "engineer_supervisor",
+                "engineer",
+                "drafter",
+                "electrician_supervisor",
+                "electrician",
+                "site_engineer",
               ]}
             >
               <MainLayout>
@@ -881,6 +889,7 @@ function AppRoutes() {
                 "drafter",
                 "electrician_supervisor",
                 "electrician",
+                "site_engineer",
                 "super_admin",
                 "marketing_director",
                 "engineering_director",

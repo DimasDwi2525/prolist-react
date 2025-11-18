@@ -80,6 +80,16 @@ export default function ManPowerDashboard() {
   const tableHeight = window.innerWidth > 2500 ? 400 : 200;
   const largeTableHeight = window.innerWidth > 2500 ? 500 : 300;
 
+  const calculateTableHeight = (
+    dataLength,
+    minHeight = 200,
+    maxHeight = 400
+  ) => {
+    const rowHeight = 30; // Approximate height per row
+    const calculatedHeight = minHeight + dataLength * rowHeight;
+    return Math.min(calculatedHeight, maxHeight);
+  };
+
   const handleViewClick = (type) => {
     if (type === "overdue") {
       setModalData(stats.top5Overdue);
@@ -100,7 +110,7 @@ export default function ManPowerDashboard() {
         { data: "delay_days", title: "Delay (days)" },
         { data: "status", title: "Status" },
       ]);
-      setModalTitle("Overdue Projects");
+      setModalTitle("Project Overdue (POV)");
     } else if (type === "dueThisMonth") {
       setModalData(stats.projectDueThisMonthList);
       setModalColumns([
@@ -119,7 +129,7 @@ export default function ManPowerDashboard() {
         },
         { data: "status", title: "Status" },
       ]);
-      setModalTitle("Due This Month");
+      setModalTitle("Project One Month Out (OMO)");
     } else if (type === "onTrack") {
       setModalData(stats.projectOnTrackList);
       setModalColumns([
@@ -138,7 +148,7 @@ export default function ManPowerDashboard() {
         },
         { data: "status", title: "Status" },
       ]);
-      setModalTitle("On Track Projects");
+      setModalTitle("On Track Projects (OTP)");
     } else if (type === "totalActive") {
       setModalData(
         stats.projectOnTrackList.concat(
@@ -162,7 +172,7 @@ export default function ManPowerDashboard() {
         },
         { data: "status", title: "Status" },
       ]);
-      setModalTitle("Total Active Projects");
+      setModalTitle("Total Open Projects");
     } else {
       setModalData([]);
       setModalColumns([]);
@@ -173,28 +183,28 @@ export default function ManPowerDashboard() {
 
   const cards = [
     {
-      title: "Project Outstanding (Overdue)",
+      title: "Project Overdue (POV)",
       value: stats.projectOverdue,
       color: { bgColor: "#ef4444", textColor: "#ffffff" },
       icon: <FaExclamationTriangle size={22} />,
       onViewClick: () => handleViewClick("overdue"),
     },
     {
-      title: "Due This Month",
+      title: "Project One Month Out (OMO)",
       value: stats.projectDueThisMonth,
       color: { bgColor: "#fbbf24", textColor: "#000000" },
       icon: <FaClock size={22} />,
       onViewClick: () => handleViewClick("dueThisMonth"),
     },
     {
-      title: "On Track Projects (Not Overdue)",
+      title: "Project On Track (OTP)",
       value: stats.projectOnTrack,
       color: { bgColor: "#10b981", textColor: "#ffffff" },
       icon: <FaCheckCircle size={22} />,
       onViewClick: () => handleViewClick("onTrack"),
     },
     {
-      title: "Total Active Projects",
+      title: "Total Open Projects (TOP)",
       value: stats.totalActiveProjects,
       color: { bgColor: "#0074A8", textColor: "#ffffff" },
       icon: <FaProjectDiagram size={22} />,
@@ -214,7 +224,7 @@ export default function ManPowerDashboard() {
       {/* Top 5 Overdue Projects */}
       <div className="bg-white shadow rounded-xl p-6 flex flex-col min-h-[300px]">
         <h2 className="text-base lg:text-lg font-semibold flex items-center gap-2">
-          <FaProjectDiagram className="text-blue-500" /> Top 5 Overdue Projects
+          <FaProjectDiagram className="text-blue-500" /> Project Overdue (POV)
         </h2>
         {stats.top5Overdue.length === 0 ? (
           <p className="text-center text-gray-500 mt-4">No overdue projects.</p>
@@ -260,11 +270,65 @@ export default function ManPowerDashboard() {
           </div>
         )}
       </div>
+      {/* Project One Month Out */}
+      <div className="bg-white shadow rounded-xl p-6 flex flex-col min-h-[200px]">
+        <h2 className="text-base lg:text-lg font-semibold flex items-center gap-2">
+          <FaClock className="text-yellow-500" /> Project One Month Out (OMO)
+        </h2>
+        <div className="flex-1 mt-4">
+          {stats.projectDueThisMonthList.length === 0 ? (
+            <p className="text-center text-gray-500 mt-4">
+              No projects due this month.
+            </p>
+          ) : (
+            <div className="table-wrapper">
+              <div className="table-inner">
+                <HotTable
+                  data={stats.projectDueThisMonthList}
+                  colHeaders={[
+                    "Project Number",
+                    "Project Name",
+                    "Client Name",
+                    "PIC",
+                    "Target Date",
+                    "Status",
+                  ]}
+                  columns={[
+                    { data: "project_number", type: "text", editor: false },
+                    { data: "project_name", type: "text", editor: false },
+                    { data: "client_name", type: "text", editor: false },
+                    { data: "pic", type: "text", editor: false },
+                    {
+                      data: "target_dates",
+                      type: "date",
+                      dateFormat: "YYYY-MM-DD",
+                      editor: false,
+                      renderer: (instance, td, row, col, prop, value) => {
+                        const displayValue = value ? formatDate(value) : "";
+                        td.innerHTML = displayValue;
+                        return td;
+                      },
+                    },
+                    { data: "status", type: "text", editor: false },
+                  ]}
+                  stretchH="all"
+                  height={calculateTableHeight(
+                    stats.projectDueThisMonthList.length,
+                    200,
+                    400
+                  )}
+                  className="ht-theme-horizon"
+                  licenseKey="non-commercial-and-evaluation"
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
       {/* Upcoming Projects */}
       <div className="bg-white shadow rounded-xl p-6 flex flex-col min-h-[200px]">
         <h2 className="text-base lg:text-lg font-semibold flex items-center gap-2">
-          <FaCalendarAlt className="text-indigo-500" /> Upcoming Projects (Next
-          30 days)
+          <FaCalendarAlt className="text-indigo-500" /> Project On Track (OTP)
         </h2>
         <div className="flex-1 mt-4">
           {stats.upcomingProjects.length === 0 ? (

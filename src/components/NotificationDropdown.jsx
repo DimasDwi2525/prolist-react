@@ -150,7 +150,11 @@ export default function NotificationDropdown({ notifications, onRead }) {
         setSelectedWorkOrderId(workOrderId);
         setOpenWorkOrderModal(true);
       }
-    } else if (type === "log") {
+    } else if (
+      type === "log" ||
+      type === "log_created" ||
+      type === "log_update"
+    ) {
       const logId = notif.data?.log_id;
       if (logId) {
         // Fetch approval data for this log

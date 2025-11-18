@@ -320,8 +320,8 @@ export default function PhcFormModal({
         }}
       >
         {isEditMode
-          ? "✏️ Edit Project Handover Checklist (PHC)"
-          : "➕ Create Project Handover Checklist (PHC)"}
+          ? `✏️ Edit Project Handover Checklist (PHC) - ${project?.project_number} - ${project?.project_name}`
+          : `➕ Create Project Handover Checklist (PHC) - ${project?.project_number} - ${project?.project_name}`}
         <IconButton onClick={onClose}>
           <CloseIcon />
         </IconButton>
