@@ -26,7 +26,6 @@ import {
 } from "@mui/material";
 
 import api from "../../../api/api";
-import { getUser } from "../../../utils/storage";
 
 import { sortOptions } from "../../../helper/SortOptions";
 
@@ -36,18 +35,6 @@ export default function ManPowerAllocationTable({
   pn_number,
   embedded = false,
 }) {
-  const user = getUser();
-  const userRole = user?.role?.name;
-  const restrictedRoles = [
-    "manPower",
-    "engineer_supervisor",
-    "drafter",
-    "electrician_supervisor",
-    "electrician",
-    "site_engineer",
-  ];
-  const canAddManPower = !restrictedRoles.includes(userRole);
-
   const [allocations, setAllocations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [paginationModel, setPaginationModel] = useState({
@@ -399,24 +386,22 @@ export default function ManPowerAllocationTable({
 
   const content = (
     <>
-      {canAddManPower && !embedded && (
-        <div className="flex justify-end mb-2">
-          {/* Tombol Add Allocation Compact */}
-          <Tooltip title="Add Allocation">
-            <IconButton
-              color="primary"
-              onClick={() => setOpenCreateModal(true)}
-              sx={{
-                backgroundColor: "primary.main",
-                color: "white",
-                "&:hover": { backgroundColor: "primary.dark" },
-              }}
-            >
-              <Plus size={20} />
-            </IconButton>
-          </Tooltip>
-        </div>
-      )}
+      <div className="flex justify-end mb-2">
+        {/* Tombol Add Allocation Compact */}
+        <Tooltip title="Add Allocation">
+          <IconButton
+            color="primary"
+            onClick={() => setOpenCreateModal(true)}
+            sx={{
+              backgroundColor: "primary.main",
+              color: "white",
+              "&:hover": { backgroundColor: "primary.dark" },
+            }}
+          >
+            <Plus size={20} />
+          </IconButton>
+        </Tooltip>
+      </div>
       <DataGrid
         rows={allocations}
         columns={columns}

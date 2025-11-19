@@ -3,7 +3,7 @@ import { format, parseISO } from "date-fns";
 import api from "../../api/api";
 
 import LogTable from "../../components/table/LogTable";
-import ManPowerAllocationTable from "../../pages/engineer-page/man-power/ManPowerAllocationTable";
+import ManPowerAllocationView from "../../components/ManPowerAllocationView";
 import {
   Dialog,
   IconButton,
@@ -380,7 +380,7 @@ const ViewProjectsModalManPower = ({ open = false, onClose, pn_number }) => {
           {/* Man Power Allocation Tab */}
           {activeTab === "manpower" && (
             <div className="py-6">
-              <ManPowerAllocationTable
+              <ManPowerAllocationView
                 embedded={true}
                 pn_number={project.pn_number}
               />

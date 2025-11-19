@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useRef, useMemo } from "react";
 import { HotTable } from "@handsontable/react";
-import { Plus } from "lucide-react";
 import {
   Stack,
   Box,
@@ -18,6 +17,8 @@ import ColumnVisibilityModal from "../../../components/ColumnVisibilityModal";
 import { filterBySearch } from "../../../utils/filter";
 import { getClientName } from "../../../utils/getClientName";
 import ViewProjectsModalManPower from "../../../components/modal/ViewProjectsModalManPower";
+
+import ProjectFormModal from "../../project/ProjectFormModal";
 
 // ---------------- Utils ---------------- //
 const formatDate = (val) => {
@@ -58,9 +59,6 @@ export default function ManPowerProjectTable() {
 
   // State
   const [projects, setProjects] = useState([]);
-  const [clients] = useState([]);
-  const [quotations] = useState([]);
-  const [categories] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -71,7 +69,7 @@ export default function ManPowerProjectTable() {
     message: "",
     severity: "success",
   });
-  const [openCreateModal, setOpenCreateModal] = useState(false);
+
   const [openViewModal, setOpenViewModal] = useState(false);
   const [selectedProject, setSelectedProject] = useState(null);
 
@@ -224,42 +222,50 @@ export default function ManPowerProjectTable() {
 
       {/* Handsontable */}
       {/* Handsontable */}
-      {paginatedData.length > 0 ? (
-        <HotTable
-          ref={hotTableRef}
-          data={paginatedData}
-          colHeaders={columns.map((c) => c.title)}
-          columns={columns}
-          width="100%"
-          height={450}
-          manualColumnResize
-          manualColumnFreeze
-          fixedColumnsLeft={3}
-          stretchH="all"
-          filters
-          dropdownMenu
-          className="ht-theme-horizon"
-          licenseKey="non-commercial-and-evaluation"
-          hiddenColumns={{
-            columns: columns
-              .map((col, i) => (columnVisibility[col.data] ? null : i))
-              .filter((i) => i !== null),
-            indicators: true,
-          }}
-        />
-      ) : (
-        <Box
-          display="flex"
-          alignItems="center"
-          justifyContent="center"
-          height={300}
-          sx={{ border: "1px dashed #ccc", borderRadius: 2 }}
-        >
-          <p style={{ color: "#666", fontSize: "1rem" }}>
-            🚫 No projects available
-          </p>
-        </Box>
-      )}
+      <div className="table-wrapper">
+        <div className="table-inner">
+          {paginatedData.length > 0 ? (
+            <HotTable
+              ref={hotTableRef}
+              data={paginatedData}
+              colHeaders={columns.map((c) => c.title)}
+              columns={columns}
+              width="auto"
+              height={Math.min(pageSize * 50 + 50, window.innerHeight - 250)}
+              manualColumnResize
+              licenseKey="non-commercial-and-evaluation"
+              manualColumnFreeze
+              fixedColumnsLeft={3}
+              afterChange={() => {}}
+              stretchH="all"
+              filters
+              dropdownMenu
+              className="ht-theme-horizon"
+              manualColumnMove
+              rowHeights={50}
+              autoRowSize={false}
+              hiddenColumns={{
+                columns: columns
+                  .map((col, i) => (columnVisibility[col.data] ? null : i))
+                  .filter((i) => i !== null),
+                indicators: true,
+              }}
+            />
+          ) : (
+            <Box
+              display="flex"
+              alignItems="center"
+              justifyContent="center"
+              height={300}
+              sx={{ border: "1px dashed #ccc", borderRadius: 2 }}
+            >
+              <p style={{ color: "#666", fontSize: "1rem" }}>
+                🚫 No projects available
+              </p>
+            </Box>
+          )}
+        </div>
+      </div>
 
       {/* Snackbar */}
       <Snackbar
@@ -270,20 +276,6 @@ export default function ManPowerProjectTable() {
       >
         <Alert severity={snackbar.severity}>{snackbar.message}</Alert>
       </Snackbar>
-
-      {/* Modal Create */}
-      {openCreateModal && (
-        <ProjectFormModal
-          open={openCreateModal}
-          onClose={() => setOpenCreateModal(false)}
-          clients={clients}
-          quotations={quotations}
-          projects={projects}
-          categories={categories}
-          token=""
-          onSave={fetchProjects}
-        />
-      )}
 
       {/* Modal View */}
       {openViewModal && selectedProject && (
