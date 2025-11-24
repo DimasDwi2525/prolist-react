@@ -24,17 +24,6 @@ export default function WorkOrderTable() {
   const [openWO, setOpenWO] = useState(false);
   const [selectedWorkOrder, setSelectedWorkOrder] = useState(null);
   const [openView, setOpenView] = useState(false);
-  const [currentUser, setCurrentUser] = useState(null);
-
-  // === Fetch Current User ===
-  const fetchCurrentUser = async () => {
-    try {
-      const res = await api.get("/user");
-      setCurrentUser(res.data.data);
-    } catch (err) {
-      console.error(err);
-    }
-  };
 
   // === Fetch Project ===
   const fetchProject = async () => {
@@ -62,7 +51,6 @@ export default function WorkOrderTable() {
   };
 
   useEffect(() => {
-    fetchCurrentUser();
     fetchProject();
     fetchWorkOrders();
   }, [pn_number]);
@@ -78,8 +66,8 @@ export default function WorkOrderTable() {
   const handleView = async (woId) => {
     try {
       const res = await api.get(`/work-order/detail/${woId}`);
-      setSelectedWorkOrder(res.data.data); // 🔹 load detail WO
-      setOpenView(true); // 🔹 buka modal view
+      setSelectedWorkOrder(res.data.data); // load detail WO
+      setOpenView(true); // open modal view
     } catch (err) {
       console.error(err);
     }
@@ -96,8 +84,8 @@ export default function WorkOrderTable() {
 
     const mapWO = (wo) => {
       if (!wo.id) {
-        console.error("Row tidak punya id. DataGrid akan error!", wo);
-        return null; // skip jika tidak ada id
+        console.error("Row missing id. DataGrid error!", wo);
+        return null; // skip if no id
       }
       return wo;
     };
@@ -124,7 +112,7 @@ export default function WorkOrderTable() {
       }
     }
 
-    // Urutkan
+    // Sort
     newWorkOrders.sort(
       (a, b) =>
         (Number(a.wo_number_in_project) || 0) -
@@ -155,21 +143,17 @@ export default function WorkOrderTable() {
           label="View"
           onClick={() => handleView(params.row.id)}
         />,
-        ...(params.row.created_by === currentUser?.id
-          ? [
-              <GridActionsCellItem
-                key="edit"
-                icon={
-                  <Tooltip title="Edit">
-                    <Edit3 size={18} color="green" />
-                  </Tooltip>
-                }
-                label="Edit"
-                onClick={() => handleEdit(params.row.id)}
-                // disabled={params.row.status === "finished"}
-              />,
-            ]
-          : []),
+        <GridActionsCellItem
+          key="edit"
+          icon={
+            <Tooltip title="Edit">
+              <Edit3 size={18} color="green" />
+            </Tooltip>
+          }
+          label="Edit"
+          onClick={() => handleEdit(params.row.id)}
+          // disabled={params.row.status === "finished"}
+        />,
       ],
     },
     {
@@ -182,7 +166,7 @@ export default function WorkOrderTable() {
         const statusColorMap = {
           "waiting approval": "warning",
           approved: "success",
-          finished: "default", // atau "primary" sesuai preferensi
+          finished: "default",
         };
 
         const color = statusColorMap[params.value.toLowerCase()] || "default";
@@ -329,7 +313,7 @@ export default function WorkOrderTable() {
         />
       )}
 
-      {/* 🔹 Modal View Detail */}
+      {/* Modal View Detail */}
       {openView && selectedWorkOrder && (
         <ViewWorkOrderModal
           open={openView}

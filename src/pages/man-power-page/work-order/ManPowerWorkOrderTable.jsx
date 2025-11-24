@@ -12,6 +12,7 @@ import {
 import { ArrowLeft, Plus, Edit3, Eye } from "lucide-react";
 import { format } from "date-fns";
 import api from "../../../api/api";
+import { getUser } from "../../../utils/storage"; // added import for getUser
 import ManPowerWorkOrderFormModal from "../../../components/modal/ManPowerWorkOrderFormModal";
 import ViewWorkOrderModal from "../../../components/modal/ViewWorkOrderModal";
 
@@ -24,6 +25,7 @@ export default function ManPowerWorkOrderTable() {
   const [openWO, setOpenWO] = useState(false);
   const [selectedWorkOrder, setSelectedWorkOrder] = useState(null);
   const [openView, setOpenView] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null); // added currentUser state
   // Removed currentUser state and fetchCurrentUser function as they are no longer used
 
   // === Fetch Project ===
@@ -52,7 +54,7 @@ export default function ManPowerWorkOrderTable() {
   };
 
   useEffect(() => {
-    // fetchCurrentUser(); // removed since currentUser state and function are removed
+    setCurrentUser(getUser()); // set current user on mount
     fetchProject();
     fetchWorkOrders();
   }, [pn_number]);
@@ -134,31 +136,43 @@ export default function ManPowerWorkOrderTable() {
     {
       field: "actions",
       headerName: "Actions",
-      renderCell: (params) => [
-        <GridActionsCellItem
-          key="view"
-          icon={
-            <Tooltip title="View">
-              <Eye size={18} color="blue" />
-            </Tooltip>
-          }
-          label="View"
-          onClick={() => handleView(params.row.id)}
-        />,
-        [
+      renderCell: (params) => {
+        // conditionally show edit button if currentUser is in pics of this work order
+        const userId = currentUser?.id;
+        const isAssigned = params.row.pics?.some(
+          (pic) => Number(pic.user_id) === Number(userId)
+        );
+
+        const actions = [
           <GridActionsCellItem
-            key="edit"
+            key="view"
             icon={
-              <Tooltip title="Edit">
-                <Edit3 size={18} color="green" />
+              <Tooltip title="View">
+                <Eye size={18} color="blue" />
               </Tooltip>
             }
-            label="Edit"
-            onClick={() => handleEdit(params.row.id)}
-            // disabled={params.row.status === "finished"}
+            label="View"
+            onClick={() => handleView(params.row.id)}
           />,
-        ],
-      ],
+        ];
+
+        if (isAssigned) {
+          actions.push(
+            <GridActionsCellItem
+              key="edit"
+              icon={
+                <Tooltip title="Edit">
+                  <Edit3 size={18} color="green" />
+                </Tooltip>
+              }
+              label="Edit"
+              onClick={() => handleEdit(params.row.id)}
+            />
+          );
+        }
+
+        return actions;
+      },
     },
     {
       field: "status",
