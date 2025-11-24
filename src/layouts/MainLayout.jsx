@@ -27,6 +27,13 @@ export default function MainLayout({ children }) {
   const [shownWorkOrderUpdatedIds, setShownWorkOrderUpdatedIds] = useState(
     new Set()
   );
+
+  const [shownPhcApprovalUpdateIds, setShownPhcApprovalUpdateIds] = useState(
+    new Set()
+  );
+  const [shownWorkOrderApprovalUpdateIds, setShownWorkOrderApprovalUpdateIds] =
+    useState(new Set());
+
   const [projects, setProjects] = useState([]);
 
   useEffect(() => {
@@ -266,6 +273,63 @@ export default function MainLayout({ children }) {
         console.error("❌ Echo channel error for work order updated:", err)
       );
 
+    // New listener for PHC Approval Updated event
+    const phcApprovalUpdatedChannel = window.Echo.channel(
+      "phc.approval.updated"
+    )
+      .listen(".phc.approval.updated", (e) => {
+        console.log("🔥 PHC approval updated event received:", e);
+        const phcId = e.phc_id || null;
+        if (phcId && !shownPhcApprovalUpdateIds.has(phcId)) {
+          setShownPhcApprovalUpdateIds((prev) => new Set(prev).add(phcId));
+          const notification = {
+            ...e,
+            type: "phc_approval_updated",
+            created_at: new Date().toISOString(),
+            id: Date.now(),
+            read_at: null,
+          };
+          setNotifications((prev) => [notification, ...prev]);
+          toast.success(e.message || "PHC approval updated", {
+            duration: 5000,
+          });
+        }
+      })
+      .error((err) =>
+        console.error("❌ Echo channel error for PHC approval updated:", err)
+      );
+
+    // New listener for Work Order Approval Updated event
+    const workOrderApprovalUpdatedChannel = window.Echo.channel(
+      "work_order.approval.updated"
+    )
+      .listen(".work_order.approval.updated", (e) => {
+        console.log("🔥 Work Order approval updated event received:", e);
+        const workOrderId = e.work_order_id || null;
+        if (workOrderId && !shownWorkOrderApprovalUpdateIds.has(workOrderId)) {
+          setShownWorkOrderApprovalUpdateIds((prev) =>
+            new Set(prev).add(workOrderId)
+          );
+          const notification = {
+            ...e,
+            type: "work_order_approval_updated",
+            created_at: new Date().toISOString(),
+            id: Date.now(),
+            read_at: null,
+          };
+          setNotifications((prev) => [notification, ...prev]);
+          toast.success(e.message || "Work Order approval updated", {
+            duration: 5000,
+          });
+        }
+      })
+      .error((err) =>
+        console.error(
+          "❌ Echo channel error for Work Order approval updated:",
+          err
+        )
+      );
+
     return () => {
       phcChannel.stopListening(".phc.created");
       requestInvoiceChannel.stopListening(".request.invoice.created");
@@ -277,6 +341,11 @@ export default function MainLayout({ children }) {
       });
       workOrderCreatedChannel.stopListening(".workorder.created");
       workOrderUpdatedChannel.stopListening(".workorder.updated");
+
+      phcApprovalUpdatedChannel.stopListening(".phc.approval.updated");
+      workOrderApprovalUpdatedChannel.stopListening(
+        ".work_order.approval.updated"
+      );
     };
   }, []); // only once
 

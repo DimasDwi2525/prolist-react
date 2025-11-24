@@ -29,8 +29,7 @@ import FormRetentionModal from "../../components/modal/FormRetentionModal";
 import LoadingOverlay from "../../components/loading/LoadingOverlay";
 import ColumnVisibilityModal from "../../components/ColumnVisibilityModal";
 import { filterBySearch } from "../../utils/filter";
-import { formatDate } from "../../utils/FormatDate";
-import { formatValue } from "../../utils/formatValue";
+import { dateRenderer, valueRenderer } from "../../utils/handsontableRenderers";
 
 export default function RetentionTable() {
   const hotTableRef = useRef(null);
@@ -55,15 +54,6 @@ export default function RetentionTable() {
     open: false,
     retention: null,
   });
-
-  const dateRenderer = (instance, td, row, col, prop, value) => {
-    td.innerText = formatDate(value);
-    return td;
-  };
-
-  // Utils
-  const safeText = (val, fallback = "-") =>
-    val == null || val === "" ? fallback : String(val);
 
   // Definisi kolom
   const allColumns = useMemo(
@@ -203,24 +193,21 @@ export default function RetentionTable() {
           return td;
         },
       },
-      { data: "project_number", title: "Project Number" },
-      { data: "project_name", title: "Project Name" },
-      { data: "client_name", title: "Client Name" },
-      { data: "invoice_number", title: "Invoice Number" },
+      { data: "project_number", title: "Project Number", readOnly: true },
+      { data: "project_name", title: "Project Name", readOnly: true },
+      { data: "client_name", title: "Client Name", readOnly: true },
+      { data: "invoice_number", title: "Invoice Number", readOnly: true },
       {
         data: "retention_due_date",
         title: "Retention Due Date",
         renderer: dateRenderer,
+        readOnly: true,
       },
       {
         data: "retention_value",
         title: "Retention Value",
-        renderer: (instance, td, row, col, prop, value) => {
-          td.style.fontWeight = "600";
-          td.style.color = "green";
-          td.innerText = safeText(formatValue(value).formatted);
-          return td;
-        },
+        renderer: valueRenderer,
+        readOnly: true,
       },
     ],
     []

@@ -15,13 +15,19 @@ import ReactDOM from "react-dom";
 import { useNavigate } from "react-router-dom";
 import api from "../../api/api";
 import ViewWorkOrderModal from "../../components/modal/ViewWorkOrderModal";
+import WorkOrderFormModal from "../../components/modal/WorkOrderFormModal";
 import { getUser } from "../../utils/storage";
 import LoadingOverlay from "../../components/loading/LoadingOverlay";
 import FilterBar from "../../components/filter/FilterBar";
 import DashboardCard from "../../components/card/DashboardCard";
 import { filterBySearch } from "../../utils/filter";
-import { formatDate } from "../../utils/FormatDate";
 import { getClientName } from "../../utils/getClientName";
+
+import {
+  dateRenderer,
+  statusRenderer,
+  textRenderer,
+} from "../../utils/handsontableRenderers";
 
 export default function WorkOrderSummary() {
   const navigate = useNavigate();
@@ -41,6 +47,10 @@ export default function WorkOrderSummary() {
   });
   const [openViewModal, setOpenViewModal] = useState(false);
   const [selectedWoId, setSelectedWoId] = useState(null);
+
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [selectedWorkOrderForEdit, setSelectedWorkOrderForEdit] =
+    useState(null);
 
   const [filters, setFilters] = useState({
     year: new Date().getFullYear(),
@@ -74,23 +84,13 @@ export default function WorkOrderSummary() {
   ].includes(userRole);
   const suc = ["warehouse"].includes(userRole);
 
-  const dateRenderer = (instance, td, row, col, prop, value) => {
-    td.innerText = formatDate(value);
-    return td;
-  };
-
-  const statusRenderer = (instance, td, row, col, prop, value) => {
-    td.innerText = value || "-";
-    return td;
-  };
-
   const allColumns = useMemo(
     () => [
       {
         data: "actions",
         title: "Actions",
         readOnly: true,
-        width: 60,
+        width: 120,
         renderer: (instance, td, row) => {
           td.innerHTML = "";
           const wrapper = document.createElement("div");
@@ -116,20 +116,73 @@ export default function WorkOrderSummary() {
             }
           };
 
+          const editBtn = document.createElement("button");
+          editBtn.style.cursor = "pointer";
+          editBtn.style.border = "none";
+          editBtn.style.background = "transparent";
+          editBtn.title = "Edit";
+          editBtn.style.fontSize = "16px";
+          editBtn.style.lineHeight = "1";
+          editBtn.style.padding = "0";
+
+          const editIcon = document.createElement("span");
+          editIcon.innerHTML = "✏️"; // Pencil icon emoji
+          editBtn.appendChild(editIcon);
+
+          editBtn.onclick = () => {
+            const wo = instance.getSourceDataAtRow(row);
+            if (wo) {
+              setSelectedWorkOrderForEdit(wo);
+              setEditModalOpen(true);
+            }
+          };
+
           wrapper.appendChild(viewBtn);
+          wrapper.appendChild(editBtn);
           td.appendChild(wrapper);
           return td;
         },
       },
-      { data: "wo_code", title: "WO Code" },
-      { data: "project_number", title: "Project Number" },
-      { data: "project_name", title: "Project Name" },
-      { data: "client_name", title: "Client" },
-      { data: "total_mandays", title: "Total Mandays" },
-      { data: "status", title: "Status", renderer: statusRenderer },
+      {
+        data: "wo_code",
+        title: "WO Code",
+        readOnly: true,
+        renderer: textRenderer,
+      },
+      {
+        data: "project_number",
+        title: "Project Number",
+        readOnly: true,
+        renderer: textRenderer,
+      },
+      {
+        data: "project_name",
+        title: "Project Name",
+        readOnly: true,
+        renderer: textRenderer,
+      },
+      {
+        data: "client_name",
+        title: "Client",
+        readOnly: true,
+        renderer: textRenderer,
+      },
+      {
+        data: "total_mandays",
+        title: "Total Mandays",
+        readOnly: true,
+        renderer: textRenderer,
+      },
+      {
+        data: "status",
+        title: "Status",
+        readOnly: true,
+        renderer: statusRenderer,
+      },
       {
         data: "actual_end_working_date",
         title: "Actual End Date",
+        readOnly: true,
         renderer: dateRenderer,
       },
     ],
@@ -359,6 +412,20 @@ export default function WorkOrderSummary() {
           setSelectedWoId(null);
         }}
         workOrderId={selectedWoId}
+      />
+
+      <WorkOrderFormModal
+        open={editModalOpen}
+        onClose={(updatedWorkOrder) => {
+          setEditModalOpen(false);
+          setSelectedWorkOrderForEdit(null);
+          if (updatedWorkOrder) {
+            // Refresh list or update state
+            fetchData();
+          }
+        }}
+        workOrder={selectedWorkOrderForEdit}
+        project={selectedWorkOrderForEdit?.project}
       />
 
       <Box display="flex" justifyContent="flex-end" mt={2}>

@@ -18,7 +18,11 @@ import LoadingOverlay from "../../components/loading/LoadingOverlay";
 import FilterBar from "../../components/filter/FilterBar";
 import ColumnVisibilityModal from "../../components/ColumnVisibilityModal";
 import { filterBySearch } from "../../utils/filter";
-import { formatDate } from "../../utils/FormatDate";
+import {
+  statusRenderer as customStatusRenderer,
+  dateRenderer,
+  textRenderer,
+} from "../../utils/handsontableRenderers";
 
 export default function RequestInvoiceTable() {
   const hotTableRef = useRef(null);
@@ -48,20 +52,6 @@ export default function RequestInvoiceTable() {
   const [stats, setStats] = useState({
     availableYears: [new Date().getFullYear()],
   });
-
-  const statusRenderer = (instance, td, row, col, prop, value) => {
-    const statusColors = {
-      pending: "#ff9800", // orange
-      approved: "#4caf50", // green
-      rejected: "#f44336", // red
-      draft: "#9e9e9e", // grey
-    };
-    const color = statusColors[value?.toLowerCase()] || "#000"; // default black
-    td.innerText = value || "-";
-    td.style.color = color;
-    td.style.fontWeight = "600";
-    return td;
-  };
 
   // Definisi kolom
   const allColumns = useMemo(
@@ -123,20 +113,48 @@ export default function RequestInvoiceTable() {
           return td;
         },
       },
-      { data: "request_invoice_number", title: "Request Invoice Number" },
-      { data: "project_name", title: "Project Name" },
-      { data: "client_name", title: "Client" },
-      { data: "requested_by_name", title: "Requested By" },
-      { data: "approved_by_name", title: "Approved By" },
+      {
+        data: "request_invoice_number",
+        title: "Request Invoice Number",
+        readOnly: true,
+        renderer: textRenderer,
+      },
+      {
+        data: "project_name",
+        title: "Project Name",
+        readOnly: true,
+        renderer: textRenderer,
+      },
+      {
+        data: "client_name",
+        title: "Client",
+        readOnly: true,
+        renderer: textRenderer,
+      },
+      {
+        data: "requested_by_name",
+        title: "Requested By",
+        readOnly: true,
+        renderer: textRenderer,
+      },
+      {
+        data: "approved_by_name",
+        title: "Approved By",
+        readOnly: true,
+        renderer: textRenderer,
+      },
       {
         data: "created_at",
         title: "Created At",
-        renderer: (instance, td, row, col, prop, value) => {
-          td.innerText = formatDate(value);
-          return td;
-        },
+        readOnly: true,
+        renderer: dateRenderer,
       },
-      { data: "status", title: "Status", renderer: statusRenderer },
+      {
+        data: "status",
+        title: "Status",
+        readOnly: true,
+        renderer: customStatusRenderer,
+      },
     ],
     []
   );

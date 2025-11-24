@@ -22,6 +22,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import Swal from "sweetalert2";
 import api from "../../api/api";
 import LoadingOverlay from "../../components/loading/LoadingOverlay";
+import { textRenderer } from "../../utils/handsontableRenderers";
 
 export default function PurposeWorkOrderTable() {
   const hotTableRef = useRef(null);
@@ -112,12 +113,19 @@ export default function PurposeWorkOrderTable() {
         readOnly: true,
         width: 30,
       },
-      { data: "name", title: "Purpose Name" },
+      {
+        data: "name",
+        title: "Purpose Name",
+        readOnly: true,
+        renderer: textRenderer,
+      },
     ],
     [purposes]
   );
 
   // Inline edit
+  // Commented out afterChange handler since cells are now read-only
+  /*
   const afterChange = (changes, source) => {
     if (source === "loadData" || !changes) return;
 
@@ -153,6 +161,7 @@ export default function PurposeWorkOrderTable() {
       }
     });
   };
+  */
 
   // Open form
   const openForm = (purpose = null) => {
@@ -266,7 +275,7 @@ export default function PurposeWorkOrderTable() {
           columns={allColumns}
           rowHeaders={false}
           licenseKey="non-commercial-and-evaluation"
-          afterChange={afterChange}
+          // afterChange={afterChange}
           stretchH="all"
           width="100%"
           height={550}

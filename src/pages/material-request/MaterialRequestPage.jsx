@@ -14,6 +14,10 @@ import api from "../../api/api"; // Axios instance
 import { useNavigate } from "react-router-dom";
 import LoadingOverlay from "../../components/loading/LoadingOverlay";
 import { filterBySearch } from "../../utils/filter";
+import {
+  textRenderer,
+  statusRenderer,
+} from "../../utils/handsontableRenderers";
 
 export default function MaterialRequestPage() {
   const navigate = useNavigate();
@@ -26,17 +30,6 @@ export default function MaterialRequestPage() {
 
   const percentRenderer = (instance, td, row, col, prop, value) => {
     td.innerText = `${value != null ? value : 0}%`;
-    return td;
-  };
-
-  const statusRenderer = (instance, td, row, col, prop, value) => {
-    td.innerText = value?.name || "-";
-    return td;
-  };
-
-  const textRenderer = (instance, td, row, col, prop, value) => {
-    td.innerText = value || "-";
-    td.style.color = "black";
     return td;
   };
 

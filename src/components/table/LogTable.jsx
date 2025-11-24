@@ -18,8 +18,13 @@ import {
 import { Close as CloseIcon } from "@mui/icons-material";
 import api from "../../api/api";
 import FormLogModal from "../modal/FormLogModal";
-import { formatDate } from "../../utils/FormatDate";
 import { getUser } from "../../utils/storage";
+
+import {
+  dateRenderer,
+  textRenderer,
+  statusRenderer,
+} from "../../utils/handsontableRenderers";
 
 export default function LogTable({ projectId }) {
   const hotTableRef = useRef(null);
@@ -137,43 +142,33 @@ export default function LogTable({ projectId }) {
       {
         data: "tgl_logs",
         title: "Date",
-        renderer: (instance, td, row, col, prop, value) => {
-          td.innerText = formatDate(value);
-          return td;
-        },
+        readOnly: true,
+        renderer: dateRenderer,
       },
-      { data: "user", title: "Created By" },
-      { data: "categorie", title: "Category" },
-      { data: "logs", title: "Log" },
+      {
+        data: "user",
+        title: "Created By",
+        readOnly: true,
+        renderer: textRenderer,
+      },
+      {
+        data: "categorie",
+        title: "Category",
+        readOnly: true,
+        renderer: textRenderer,
+      },
+      { data: "logs", title: "Log", readOnly: true, renderer: textRenderer },
       {
         data: "status",
         title: "Status",
-        renderer: (instance, td, row, col, prop, value) => {
-          const statusColors = {
-            "waiting approval": "warning",
-            open: "success",
-            closed: "error",
-          };
-          const color = statusColors[value] || "default";
-          td.innerHTML = `<span style="background-color: ${
-            color === "warning"
-              ? "#ff9800"
-              : color === "success"
-              ? "#4caf50"
-              : color === "error"
-              ? "#f44336"
-              : "#9e9e9e"
-          }; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px;">${value}</span>`;
-          return td;
-        },
+        readOnly: true,
+        renderer: statusRenderer,
       },
       {
         data: "responseUser",
         title: "Response User",
-        renderer: (instance, td, row, col, prop, value) => {
-          td.innerText = value || "-";
-          return td;
-        },
+        readOnly: true,
+        renderer: textRenderer,
       },
     ],
     []

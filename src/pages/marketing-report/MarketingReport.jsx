@@ -28,6 +28,14 @@ import FilterBar from "../../components/filter/FilterBar";
 import { filterBySearch } from "../../utils/filter";
 import { getClientName } from "../../utils/getClientName";
 import { sortOptions } from "../../helper/SortOptions";
+import {
+  dateRenderer,
+  textRenderer,
+  valueRenderer,
+  statusRenderer,
+} from "../../utils/handsontableRenderers";
+
+import { formatValue } from "../../utils/formatValue";
 
 export default function MarketingReport() {
   const hotTableRef = useRef(null);
@@ -56,105 +64,6 @@ export default function MarketingReport() {
     message: "",
     severity: "success",
   });
-
-  // === FORMATTER ===
-  const formatDate = (val) => {
-    if (!val) return "-";
-    try {
-      const date = new Date(val);
-      if (isNaN(date)) return "-";
-      const d = String(date.getDate()).padStart(2, "0");
-      const m = String(date.getMonth() + 1).padStart(2, "0");
-      return `${d}-${m}-${date.getFullYear()}`;
-    } catch {
-      return "-";
-    }
-  };
-
-  const formatValue = (val) => {
-    if (val == null || val === "" || isNaN(val)) return "-";
-    return new Intl.NumberFormat("id-ID", {
-      style: "currency",
-      currency: "IDR",
-      maximumFractionDigits: 0,
-    }).format(val);
-  };
-
-  const dateRenderer = (instance, td, row, col, prop, value) => {
-    td.innerText = formatDate(value);
-    td.style.color = "#000";
-    return td;
-  };
-
-  const textRenderer = (instance, td, row, col, prop, value) => {
-    td.innerText = value || "-";
-    td.style.color = "#000";
-    return td;
-  };
-
-  const valueRenderer = (instance, td, row, col, prop, value) => {
-    td.innerText = formatValue(value);
-    td.style.fontWeight = "600";
-    td.style.color = "green";
-    return td;
-  };
-
-  const statusRenderer = (instance, td, row, col, prop, value) => {
-    const statusMap = {
-      A: { label: "[A] ✓ Completed", color: "success", variant: "filled" },
-      D: { label: "[D] ⏳ No PO Yet", color: "warning", variant: "outlined" },
-      E: { label: "[E] ❌ Cancelled", color: "error", variant: "outlined" },
-      F: { label: "[F] ⚠️ Lost Bid", color: "warning", variant: "outlined" },
-      O: { label: "[O] 🕒 On Going", color: "info", variant: "outlined" },
-    };
-
-    const status = statusMap[value] || {
-      label: value,
-      color: "default",
-      variant: "outlined",
-    };
-
-    // Render Chip as HTML
-    td.innerHTML = `<span style="
-      background-color: ${
-        status.variant === "filled"
-          ? status.color === "success"
-            ? "#4caf50"
-            : status.color === "error"
-            ? "#f44336"
-            : "#2196f3"
-          : "transparent"
-      };
-      color: ${
-        status.variant === "filled"
-          ? "white"
-          : status.color === "success"
-          ? "#4caf50"
-          : status.color === "error"
-          ? "#f44336"
-          : "#2196f3"
-      };
-      border: ${
-        status.variant === "outlined"
-          ? `1px solid ${
-              status.color === "success"
-                ? "#4caf50"
-                : status.color === "error"
-                ? "#f44336"
-                : "#2196f3"
-            }`
-          : "none"
-      };
-      padding: 4px 8px;
-      border-radius: 4px;
-      font-weight: 600;
-      font-size: 12px;
-      display: inline-block;
-      min-width: 120px;
-      text-align: center;
-    ">${status.label}</span>`;
-    return td;
-  };
 
   // === COLUMNS ===
   const allColumns = useMemo(
@@ -329,7 +238,7 @@ export default function MarketingReport() {
     page * pageSize + pageSize
   );
 
-  const tableHeight = Math.min(pageSize * 70 + 50, window.innerHeight - 250);
+  const tableHeight = Math.min(pageSize * 50 + 50, window.innerHeight - 250);
 
   const handleChangePage = (e, newPage) => setPage(newPage);
   const handleChangePageSize = (e) => {
@@ -355,32 +264,70 @@ export default function MarketingReport() {
       />
 
       {/* Summary Cards */}
-      <Grid container spacing={2} sx={{ mb: 2 }}>
+      <Grid container spacing={3} sx={{ mb: 3 }}>
         <Grid item xs={12} sm={6}>
-          <Card>
-            <CardContent>
-              <Stack direction="row" alignItems="center" spacing={1}>
-                <AttachMoneyIcon color="primary" />
-                <Typography variant="h6" component="div">
-                  Quote Ammounts
+          <Card
+            elevation={6}
+            sx={{
+              borderRadius: 3,
+              transition: "box-shadow 0.3s ease-in-out",
+              "&:hover": {
+                boxShadow:
+                  "0px 12px 24px rgba(0, 0, 0, 0.12), 0px 8px 16px rgba(0, 0, 0, 0.08)",
+              },
+            }}
+          >
+            <CardContent sx={{ pb: 2 }}>
+              <Stack direction="row" alignItems="center" spacing={2} mb={1}>
+                <AttachMoneyIcon color="primary" fontSize="large" />
+                <Typography
+                  variant="h6"
+                  component="div"
+                  sx={{ fontWeight: "bold", color: "text.primary" }}
+                >
+                  Quote Amounts
                 </Typography>
               </Stack>
-              <Typography variant="h4" color="primary">
-                {formatValue(filteredTotalValue || 0)}
+              <Typography
+                variant="h4"
+                color="primary"
+                sx={{ fontWeight: "700", letterSpacing: "0.02em" }}
+              >
+                {typeof formatValue(filteredTotalValue || 0) === "object"
+                  ? formatValue(filteredTotalValue || 0).formatted
+                  : formatValue(filteredTotalValue || 0)}
               </Typography>
             </CardContent>
           </Card>
         </Grid>
         <Grid item xs={12} sm={6}>
-          <Card>
-            <CardContent>
-              <Stack direction="row" alignItems="center" spacing={1}>
-                <DescriptionIcon color="primary" />
-                <Typography variant="h6" component="div">
+          <Card
+            elevation={6}
+            sx={{
+              borderRadius: 3,
+              transition: "box-shadow 0.3s ease-in-out",
+              "&:hover": {
+                boxShadow:
+                  "0px 12px 24px rgba(0, 0, 0, 0.12), 0px 8px 16px rgba(0, 0, 0, 0.08)",
+              },
+            }}
+          >
+            <CardContent sx={{ pb: 2 }}>
+              <Stack direction="row" alignItems="center" spacing={2} mb={1}>
+                <DescriptionIcon color="primary" fontSize="large" />
+                <Typography
+                  variant="h6"
+                  component="div"
+                  sx={{ fontWeight: "bold", color: "text.primary" }}
+                >
                   Total Quotations
                 </Typography>
               </Stack>
-              <Typography variant="h4" color="primary">
+              <Typography
+                variant="h4"
+                color="primary"
+                sx={{ fontWeight: "700", letterSpacing: "0.02em" }}
+              >
                 {filteredCount || 0}
               </Typography>
             </CardContent>
@@ -484,7 +431,7 @@ export default function MarketingReport() {
           columns={allColumns}
           width="100%"
           height={tableHeight} // <=== tinggi dinamis
-          rowHeights={40} // konsisten tinggi baris
+          rowHeights={50} // konsisten tinggi baris, updated from 40 to 50 to match ProjectTable.jsx
           manualColumnResize
           licenseKey="non-commercial-and-evaluation"
           manualColumnFreeze

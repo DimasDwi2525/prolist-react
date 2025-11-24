@@ -24,17 +24,7 @@ export default function ManPowerWorkOrderTable() {
   const [openWO, setOpenWO] = useState(false);
   const [selectedWorkOrder, setSelectedWorkOrder] = useState(null);
   const [openView, setOpenView] = useState(false);
-  const [currentUser, setCurrentUser] = useState(null);
-
-  // === Fetch Current User ===
-  const fetchCurrentUser = async () => {
-    try {
-      const res = await api.get("/user");
-      setCurrentUser(res.data.data);
-    } catch (err) {
-      console.error(err);
-    }
-  };
+  // Removed currentUser state and fetchCurrentUser function as they are no longer used
 
   // === Fetch Project ===
   const fetchProject = async () => {
@@ -62,7 +52,7 @@ export default function ManPowerWorkOrderTable() {
   };
 
   useEffect(() => {
-    fetchCurrentUser();
+    // fetchCurrentUser(); // removed since currentUser state and function are removed
     fetchProject();
     fetchWorkOrders();
   }, [pn_number]);
@@ -155,21 +145,19 @@ export default function ManPowerWorkOrderTable() {
           label="View"
           onClick={() => handleView(params.row.id)}
         />,
-        ...(params.row.created_by === currentUser?.id
-          ? [
-              <GridActionsCellItem
-                key="edit"
-                icon={
-                  <Tooltip title="Edit">
-                    <Edit3 size={18} color="green" />
-                  </Tooltip>
-                }
-                label="Edit"
-                onClick={() => handleEdit(params.row.id)}
-                // disabled={params.row.status === "finished"}
-              />,
-            ]
-          : []),
+        [
+          <GridActionsCellItem
+            key="edit"
+            icon={
+              <Tooltip title="Edit">
+                <Edit3 size={18} color="green" />
+              </Tooltip>
+            }
+            label="Edit"
+            onClick={() => handleEdit(params.row.id)}
+            // disabled={params.row.status === "finished"}
+          />,
+        ],
       ],
     },
     {

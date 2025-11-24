@@ -15,15 +15,16 @@ import api from "../../api/api";
 import { clearAuth } from "../../utils/storage";
 import LoadingScreen from "../../components/loading/loadingScreen";
 import { FaUsersCog, FaCalendarAlt } from "react-icons/fa";
-import { formatDate } from "../../utils/FormatDate";
+import {
+  dateRenderer,
+  textRenderer,
+  statusRenderer,
+} from "../../utils/handsontableRenderers";
 import { Modal, Box, Typography, IconButton } from "@mui/material";
 import { Close } from "@mui/icons-material";
 import Echo from "../../echo";
 
-const dateRenderer = (instance, td, row, col, prop, value) => {
-  td.innerText = formatDate(value);
-  return td;
-};
+// Removed inline dateRenderer as we import from handsontableRenderers now
 
 const DashboardCard = ({ title, value, color, icon, onViewClick }) => {
   const displayValue = value === 0 ? "No data" : value || "No data available";
@@ -405,32 +406,50 @@ export default function EngineerDashboard() {
                     "Status",
                   ]}
                   columns={[
-                    { data: "project_number", type: "text", editor: false },
-                    { data: "project_name", type: "text", editor: false },
+                    {
+                      data: "project_number",
+                      type: "text",
+                      editor: false,
+                      renderer: textRenderer,
+                    },
+                    {
+                      data: "project_name",
+                      type: "text",
+                      editor: false,
+                      renderer: textRenderer,
+                    },
                     {
                       data: "client_name",
                       title: "Client Name",
                       type: "text",
                       editor: false,
-                      renderer: (instance, td, row, col, prop, value) => {
-                        td.innerText = value || "-";
-                        return td;
-                      },
+                      renderer: textRenderer,
                     },
-                    { data: "pic", type: "text", editor: false },
+                    {
+                      data: "pic",
+                      type: "text",
+                      editor: false,
+                      renderer: textRenderer,
+                    },
                     {
                       data: "target_dates",
                       type: "date",
                       dateFormat: "YYYY-MM-DD",
                       editor: false,
-                      renderer: (instance, td, row, col, prop, value) => {
-                        const displayValue = value ? formatDate(value) : "";
-                        td.innerHTML = displayValue;
-                        return td;
-                      },
+                      renderer: dateRenderer,
                     },
-                    { data: "delay_days", type: "numeric", editor: false },
-                    { data: "status", type: "text", editor: false },
+                    {
+                      data: "delay_days",
+                      type: "numeric",
+                      editor: false,
+                      renderer: textRenderer,
+                    },
+                    {
+                      data: "status",
+                      type: "text",
+                      editor: false,
+                      renderer: statusRenderer,
+                    },
                   ]}
                   stretchH="all"
                   height={calculateTableHeight(
@@ -470,31 +489,44 @@ export default function EngineerDashboard() {
                     "Status",
                   ]}
                   columns={[
-                    { data: "project_number", type: "text", editor: false },
-                    { data: "project_name", type: "text", editor: false },
+                    {
+                      data: "project_number",
+                      type: "text",
+                      editor: false,
+                      renderer: textRenderer,
+                    },
+                    {
+                      data: "project_name",
+                      type: "text",
+                      editor: false,
+                      renderer: textRenderer,
+                    },
                     {
                       data: "client_name",
                       title: "Client Name",
                       type: "text",
                       editor: false,
-                      renderer: (instance, td, row, col, prop, value) => {
-                        td.innerText = value || "-";
-                        return td;
-                      },
+                      renderer: textRenderer,
                     },
-                    { data: "pic", type: "text", editor: false },
+                    {
+                      data: "pic",
+                      type: "text",
+                      editor: false,
+                      renderer: textRenderer,
+                    },
                     {
                       data: "target_dates",
                       type: "date",
                       dateFormat: "YYYY-MM-DD",
                       editor: false,
-                      renderer: (instance, td, row, col, prop, value) => {
-                        const displayValue = value ? formatDate(value) : "";
-                        td.innerHTML = displayValue;
-                        return td;
-                      },
+                      renderer: dateRenderer,
                     },
-                    { data: "status", type: "text", editor: false },
+                    {
+                      data: "status",
+                      type: "text",
+                      editor: false,
+                      renderer: statusRenderer,
+                    },
                   ]}
                   stretchH="all"
                   height={calculateTableHeight(
@@ -533,29 +565,38 @@ export default function EngineerDashboard() {
                     "Status",
                   ]}
                   columns={[
-                    { data: "project_number", type: "text" },
-                    { data: "project_name", type: "text" },
+                    {
+                      data: "project_number",
+                      type: "text",
+                      editor: false,
+                      renderer: textRenderer,
+                    },
+                    {
+                      data: "project_name",
+                      type: "text",
+                      editor: false,
+                      renderer: textRenderer,
+                    },
                     {
                       data: "client_name",
                       title: "Client Name",
                       type: "text",
                       editor: false,
-                      renderer: (instance, td, row, col, prop, value) => {
-                        td.innerText = value || "-";
-                        return td;
-                      },
+                      renderer: textRenderer,
                     },
                     {
                       data: "target_dates",
                       type: "date",
                       dateFormat: "YYYY-MM-DD",
-                      renderer: (instance, td, row, col, prop, value) => {
-                        const displayValue = value ? formatDate(value) : "";
-                        td.innerHTML = displayValue;
-                        return td;
-                      },
+                      editor: false,
+                      renderer: dateRenderer,
                     },
-                    { data: "status", type: "text" },
+                    {
+                      data: "status",
+                      type: "text",
+                      editor: false,
+                      renderer: statusRenderer,
+                    },
                   ]}
                   stretchH="all"
                   height={calculateTableHeight(

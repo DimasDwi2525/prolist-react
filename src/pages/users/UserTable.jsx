@@ -116,9 +116,13 @@ export default function UserTable() {
   };
 
   const actionsRenderer = (instance, td, row) => {
-    const rowData = users[row];
+    // Get row data directly from Handsontable source data for the row
+    const rowDataFromHot = instance.getSourceDataAtRow(row);
 
-    td.innerHTML = ""; // clear biar tidak double render
+    // Find full user object from complete users array by id
+    const fullUser = users.find((u) => u.id === rowDataFromHot?.id);
+
+    td.innerHTML = ""; // clear to avoid double render
 
     ReactDOM.createRoot(td).render(
       <div style={{ display: "flex", justifyContent: "center", gap: "6px" }}>
@@ -126,7 +130,7 @@ export default function UserTable() {
           <IconButton
             color="primary"
             size="small"
-            onClick={() => openForm(rowData)}
+            onClick={() => openForm(fullUser)}
           >
             <EditIcon fontSize="small" />
           </IconButton>
@@ -135,7 +139,7 @@ export default function UserTable() {
           <IconButton
             color="error"
             size="small"
-            onClick={() => deleteUser(rowData.id)}
+            onClick={() => deleteUser(fullUser?.id)}
           >
             <DeleteIcon fontSize="small" />
           </IconButton>
@@ -169,8 +173,11 @@ export default function UserTable() {
 
     changes.forEach(([row, prop, oldValue, newValue]) => {
       if (oldValue !== newValue) {
-        const rowData = users[row];
         if (prop === "actions") return;
+
+        // Get rowData from filteredUsers and page for correct data on current page
+        const rowData = filteredUsers[page * pageSize + row];
+        if (!rowData) return;
 
         Swal.fire({
           title: "Confirm Update?",
@@ -212,6 +219,22 @@ export default function UserTable() {
         department_id: user.department?.id || "",
         pin: "", // kosongkan -> isi kalau mau ganti
       });
+
+      // Select the row/cell in Handsontable on edit open
+      const hotInstance = hotTableRef.current?.hotInstance;
+      if (hotInstance) {
+        // Find row index relative to current page's paginatedData slice
+        const startIndex = page * pageSize;
+        const paginatedUsers = filteredUsers.slice(
+          startIndex,
+          startIndex + pageSize
+        );
+        const rowIndex = paginatedUsers.findIndex((u) => u.id === user.id);
+        const colIndex = allColumns.findIndex((col) => col.data === "name");
+        if (rowIndex >= 0 && colIndex >= 0) {
+          hotInstance.selectCell(rowIndex, colIndex);
+        }
+      }
     } else {
       setFormData({
         id: null,

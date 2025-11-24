@@ -30,6 +30,8 @@ import LoadingOverlay from "../../components/loading/LoadingOverlay";
 import ColumnVisibilityModal from "../../components/ColumnVisibilityModal";
 import { filterBySearch } from "../../utils/filter";
 import { formatDate } from "../../utils/FormatDate";
+import { dateRenderer, textRenderer } from "../../utils/handsontableRenderers";
+
 export default function DeliveryOrderTable() {
   const hotTableRef = useRef(null);
 
@@ -205,26 +207,59 @@ export default function DeliveryOrderTable() {
           return td;
         },
       },
-      { data: "do_number", title: "DO Number" },
-      { data: "do_no", title: "DO No" },
-      { data: "do_description", title: "Description" },
-      { data: "project_number", title: "Project Number" },
-      { data: "project_name", title: "Project Name" },
-      { data: "client_name", title: "Client Name" },
-      { data: "invoice_no", title: "Invoice No" },
+      {
+        data: "do_number",
+        title: "DO Number",
+        readOnly: true,
+        renderer: textRenderer,
+      },
+      { data: "do_no", title: "DO No", readOnly: true, renderer: textRenderer },
+      {
+        data: "do_description",
+        title: "Description",
+        readOnly: true,
+        renderer: textRenderer,
+      },
+      {
+        data: "project_number",
+        title: "Project Number",
+        readOnly: true,
+        renderer: textRenderer,
+      },
+      {
+        data: "project_name",
+        title: "Project Name",
+        readOnly: true,
+        renderer: textRenderer,
+      },
+      {
+        data: "client_name",
+        title: "Client Name",
+        readOnly: true,
+        renderer: textRenderer,
+      },
+      {
+        data: "invoice_no",
+        title: "Invoice No",
+        readOnly: true,
+        renderer: textRenderer,
+      },
       {
         data: "return_date",
         title: "Return Date",
+        readOnly: true,
         renderer: dateRenderer,
       },
       {
         data: "do_send",
         title: "DO Send",
+        readOnly: true,
         renderer: dateRenderer,
       },
       {
         data: "created_at",
         title: "Created At",
+        readOnly: true,
         renderer: dateRenderer,
       },
     ],

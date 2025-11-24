@@ -243,12 +243,12 @@ export default function EngineerDashboard4K() {
               color: "#ef4444",
             },
             {
-              name: "Target Due Less Than 1 Month",
+              name: "Project One Month Out (OMO)",
               y: data.statusCounts[1],
               color: "#fbbf24",
             },
             {
-              name: "Target Due Greater Than 1 Month",
+              name: "Project On Track (OTP)",
               y: data.statusCounts[2],
               color: "#10b981",
             },

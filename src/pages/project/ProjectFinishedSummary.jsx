@@ -22,8 +22,15 @@ import LoadingOverlay from "../../components/loading/LoadingOverlay";
 import FilterBar from "../../components/filter/FilterBar";
 import DashboardCard from "../../components/card/DashboardCard";
 import { filterBySearch } from "../../utils/filter";
-import { formatDate } from "../../utils/FormatDate";
 import { getClientName } from "../../utils/getClientName";
+
+// Import renderers from utils
+import {
+  dateRenderer,
+  percentageRenderer,
+  statusRenderer,
+  textRenderer,
+} from "../../utils/handsontableRenderers";
 
 export default function ProjectFinishedSummary() {
   const navigate = useNavigate();
@@ -82,21 +89,6 @@ export default function ProjectFinishedSummary() {
   ].includes(userRole);
   const suc = ["warehouse"].includes(userRole);
 
-  const dateRenderer = (instance, td, row, col, prop, value) => {
-    td.innerText = formatDate(value);
-    return td;
-  };
-
-  const percentRenderer = (instance, td, row, col, prop, value) => {
-    td.innerText = `${value != null ? value : 0}%`;
-    return td;
-  };
-
-  const statusRenderer = (instance, td, row, col, prop, value) => {
-    td.innerText = value || "-";
-    return td;
-  };
-
   const allColumns = useMemo(
     () => [
       {
@@ -145,20 +137,42 @@ export default function ProjectFinishedSummary() {
           return td;
         },
       },
-      { data: "pn_number", title: "PN Number" },
-      { data: "project_name", title: "Project Name" },
-      { data: "client_name", title: "Client" },
+      {
+        data: "pn_number",
+        title: "PN Number",
+        readOnly: true,
+        renderer: textRenderer,
+      },
+      {
+        data: "project_name",
+        title: "Project Name",
+        readOnly: true,
+        renderer: textRenderer,
+      },
+      {
+        data: "client_name",
+        title: "Client",
+        readOnly: true,
+        renderer: textRenderer,
+      },
       {
         data: "project_finish_date",
         title: "Project Finish Date",
         renderer: dateRenderer,
+        readOnly: true,
       },
       {
         data: "project_progress",
         title: "Progress (%)",
-        renderer: percentRenderer,
+        renderer: percentageRenderer,
+        readOnly: true,
       },
-      { data: "status", title: "Status", renderer: statusRenderer },
+      {
+        data: "status",
+        title: "Status",
+        renderer: statusRenderer,
+        readOnly: true,
+      },
     ],
     [marketingRoles, engineerRoles, suc, navigate, projects]
   );
@@ -260,7 +274,7 @@ export default function ProjectFinishedSummary() {
     project_progress: p.project_progress,
     status: p.status,
     client_name: getClientName(p),
-    project_finish_date: formatDate(p.project_finish_date),
+    project_finish_date: p.project_finish_date,
   }));
 
   const paginatedData = filteredData.slice(

@@ -162,6 +162,7 @@ export default function ViewPhcModal({
         status: "approved",
         pin,
       });
+      setPin("");
       setPinModalOpen(false);
       handleClose(); // Close modal after success
 
@@ -185,6 +186,21 @@ export default function ViewPhcModal({
       });
     }
   };
+
+  // Reset pin when pin modal is closed
+  useEffect(() => {
+    if (!pinModalOpen) {
+      setPin("");
+    }
+  }, [pinModalOpen]);
+
+  // Reset pin when main modal closes
+  useEffect(() => {
+    if (!open) {
+      setPin("");
+      setPinModalOpen(false);
+    }
+  }, [open]);
 
   if (loading) {
     return (

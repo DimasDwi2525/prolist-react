@@ -24,6 +24,8 @@ import Swal from "sweetalert2";
 import api from "../../api/api";
 import LoadingOverlay from "../../components/loading/LoadingOverlay";
 
+import { textRenderer } from "../../utils/handsontableRenderers";
+
 export default function StatusMaterialRequestTable() {
   const hotTableRef = useRef(null);
   const [statuses, setStatuses] = useState([]);
@@ -113,8 +115,13 @@ export default function StatusMaterialRequestTable() {
         readOnly: true,
         width: 30,
       },
-      { data: "name", title: "Name", readOnly: true },
-      { data: "description", title: "Description", readOnly: true },
+      { data: "name", title: "Name", readOnly: true, renderer: textRenderer },
+      {
+        data: "description",
+        title: "Description",
+        readOnly: true,
+        renderer: textRenderer,
+      },
     ],
     [statuses]
   );

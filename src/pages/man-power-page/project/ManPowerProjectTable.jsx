@@ -20,6 +20,12 @@ import ViewProjectsModalManPower from "../../../components/modal/ViewProjectsMod
 
 import ProjectFormModal from "../../project/ProjectFormModal";
 
+import {
+  dateRenderer,
+  textRenderer,
+  statusRenderer,
+} from "../../../utils/handsontableRenderers";
+
 // ---------------- Utils ---------------- //
 const formatDate = (val) => {
   if (!val) return "-";
@@ -34,21 +40,9 @@ const formatDate = (val) => {
   }
 };
 
-const safeText = (val, fallback = "-") =>
-  val == null || val === "" ? fallback : String(val);
-
-const dateRenderer = (instance, td, row, col, prop, value) => {
-  td.innerText = safeText(formatDate(value));
-  return td;
-};
-
 const percentRenderer = (instance, td, row, col, prop, value) => {
   td.innerText = `${value != null ? value : 0}%`;
-  return td;
-};
-
-const statusRenderer = (instance, td, row, col, prop, value) => {
-  td.innerText = value?.name || "-";
+  td.style.color = "#000";
   return td;
 };
 
@@ -139,31 +133,84 @@ export default function ManPowerProjectTable() {
           return td;
         },
       },
-      { data: "project_number", title: "Project Number" },
-      { data: "project_name", title: "Project Name" },
-      { data: "categories_name", title: "Category" },
-      { data: "client_name", title: "Client" },
-      { data: "phc_dates", title: "PHC Date", renderer: dateRenderer },
-      { data: "target_dates", title: "Target Date", renderer: dateRenderer },
+      {
+        data: "project_number",
+        title: "Project Number",
+        readOnly: true,
+        renderer: textRenderer,
+      },
+      {
+        data: "project_name",
+        title: "Project Name",
+        readOnly: true,
+        renderer: textRenderer,
+      },
+      {
+        data: "categories_name",
+        title: "Category",
+        readOnly: true,
+        renderer: textRenderer,
+      },
+      {
+        data: "client_name",
+        title: "Client",
+        readOnly: true,
+        renderer: textRenderer,
+      },
+      {
+        data: "phc_dates",
+        title: "PHC Date",
+        readOnly: true,
+        renderer: dateRenderer,
+      },
+      {
+        data: "target_dates",
+        title: "Target Date",
+        readOnly: true,
+        renderer: dateRenderer,
+      },
       {
         data: "dokumen_finish_date",
         title: "Document Finish Date",
+        readOnly: true,
         renderer: dateRenderer,
       },
       {
         data: "engineering_finish_date",
         title: "Engineering Finish Date",
+        readOnly: true,
         renderer: dateRenderer,
       },
-      { data: "mandays_engineer", title: "Mandays Engineer" },
-      { data: "mandays_technician", title: "Mandays Technician" },
-      { data: "material_status", title: "Material Status" },
+      {
+        data: "mandays_engineer",
+        title: "Mandays Engineer",
+        readOnly: true,
+        renderer: textRenderer,
+      },
+      {
+        data: "mandays_technician",
+        title: "Mandays Technician",
+        readOnly: true,
+        renderer: textRenderer,
+      },
+      {
+        data: "material_status",
+        title: "Material Status",
+        readOnly: true,
+        renderer: textRenderer,
+      },
       {
         data: "project_progress",
         title: "Progress (%)",
+        readOnly: true,
         renderer: percentRenderer,
       },
-      { data: "status_project", title: "Status", renderer: statusRenderer },
+      {
+        data: "status_project",
+        title: "Status",
+        readOnly: true,
+        renderer: statusRenderer,
+      },
     ],
     [navigate]
   );

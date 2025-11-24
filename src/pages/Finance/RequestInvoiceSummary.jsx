@@ -19,6 +19,7 @@ import FilterBar from "../../components/filter/FilterBar";
 import DashboardCard from "../../components/card/DashboardCard";
 import { filterBySearch } from "../../utils/filter";
 import { getClientName } from "../../utils/getClientName";
+import { textRenderer, valueRenderer } from "../../utils/handsontableRenderers";
 
 export default function RequestInvoiceSummary() {
   const hotTableRef = useRef(null);
@@ -89,18 +90,29 @@ export default function RequestInvoiceSummary() {
           return td;
         },
       },
-      { data: "pn_number", title: "PN Number" },
-      { data: "project_name", title: "Project Name" },
-      { data: "client", title: "Client" },
+      {
+        data: "pn_number",
+        title: "PN Number",
+        readOnly: true,
+        renderer: textRenderer,
+      },
+      {
+        data: "project_name",
+        title: "Project Name",
+        readOnly: true,
+        renderer: textRenderer,
+      },
+      {
+        data: "client",
+        title: "Client",
+        readOnly: true,
+        renderer: textRenderer,
+      },
       {
         data: "total_request_invoices",
         title: "Total Request Invoices",
-        renderer: (instance, td, row, col, prop, value) => {
-          td.style.fontWeight = "600";
-          td.style.color = "green";
-          td.innerText = value || 0;
-          return td;
-        },
+        readOnly: true,
+        renderer: valueRenderer,
       },
     ],
     []

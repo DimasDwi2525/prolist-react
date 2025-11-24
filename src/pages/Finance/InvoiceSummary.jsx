@@ -19,8 +19,14 @@ import LoadingOverlay from "../../components/loading/LoadingOverlay";
 import FilterBar from "../../components/filter/FilterBar";
 import DashboardCard from "../../components/card/DashboardCard";
 import { filterBySearch } from "../../utils/filter";
-import { formatValue } from "../../utils/formatValue";
+import { formatValue } from "../../utils/formatValue"; // eslint-disable-line no-unused-vars
 import { getClientName } from "../../utils/getClientName";
+
+import {
+  valueRenderer,
+  textRenderer,
+  percentageRenderer,
+} from "../../utils/handsontableRenderers";
 
 export default function InvoiceSummary() {
   const hotTableRef = useRef(null);
@@ -104,90 +110,78 @@ export default function InvoiceSummary() {
           return td;
         },
       },
-      { data: "pn_number", title: "PN Number" },
-      { data: "project_name", title: "Project Name" },
-      { data: "client", title: "Client" },
+      {
+        data: "pn_number",
+        title: "PN Number",
+        readOnly: true,
+        renderer: textRenderer,
+      },
+      {
+        data: "project_name",
+        title: "Project Name",
+        readOnly: true,
+        renderer: textRenderer,
+      },
+      {
+        data: "client",
+        title: "Client",
+        readOnly: true,
+        renderer: textRenderer,
+      },
       {
         data: "project_value",
         title: "Project Value",
-        renderer: (instance, td, row, col, prop, value) => {
-          td.style.fontWeight = "600";
-          td.style.color = "green";
-          td.innerText = formatValue(value).formatted;
-          return td;
-        },
+        readOnly: true,
+        renderer: valueRenderer,
       },
       {
         data: "invoice_total",
         title: "Invoice Total",
-        renderer: (instance, td, row, col, prop, value) => {
-          td.style.fontWeight = "600";
-          td.style.color = "green";
-          td.innerText = formatValue(value).formatted;
-          return td;
-        },
+        readOnly: true,
+        renderer: valueRenderer,
       },
       {
         data: "expected_payment_total",
         title: "Total Target Payment",
-        renderer: (instance, td, row, col, prop, value) => {
-          td.style.fontWeight = "600";
-          td.style.color = "green";
-          td.innerText = formatValue(value).formatted;
-          return td;
-        },
+        readOnly: true,
+        renderer: valueRenderer,
       },
       {
         data: "total_dpp",
         title: "Total DPP",
-        renderer: (instance, td, row, col, prop, value) => {
-          td.style.fontWeight = "600";
-          td.style.color = "green";
-          td.innerText = formatValue(value).formatted;
-          return td;
-        },
+        readOnly: true,
+        renderer: valueRenderer,
       },
       {
         data: "payment_total",
         title: "Payment Total",
-        renderer: (instance, td, row, col, prop, value) => {
-          td.style.fontWeight = "600";
-          td.style.color = "green";
-          td.innerText = formatValue(value).formatted;
-          return td;
-        },
+        readOnly: true,
+        renderer: valueRenderer,
       },
       {
         data: "outstanding_invoice",
         title: "Outstanding Invoice",
-        renderer: (instance, td, row, col, prop, value) => {
-          td.style.fontWeight = "600";
-          td.style.color = "green";
-          td.innerText = formatValue(value).formatted;
-          return td;
-        },
+        readOnly: true,
+        renderer: valueRenderer,
       },
       {
         data: "outstanding_amount",
         title: "Outstanding Amount",
-        renderer: (instance, td, row, col, prop, value) => {
-          td.style.fontWeight = "600";
-          td.style.color = "green";
-          td.innerText = formatValue(value).formatted;
-          return td;
-        },
+        readOnly: true,
+        renderer: valueRenderer,
       },
       {
         data: "invoice_progress",
         title: "Invoice Progress (%)",
-        renderer: (instance, td, row, col, prop, value) => {
-          td.style.fontWeight = "600";
-          td.style.color = "blue";
-          td.innerText = `${value}%`;
-          return td;
-        },
+        readOnly: true,
+        renderer: percentageRenderer,
       },
-      { data: "remarks", title: "Remarks" },
+      {
+        data: "remarks",
+        title: "Remarks",
+        readOnly: true,
+        renderer: textRenderer,
+      },
     ],
     []
   );

@@ -33,6 +33,13 @@ import FilterBar from "../../components/filter/FilterBar";
 import { filterBySearch } from "../../utils/filter";
 import { formatDate } from "../../utils/FormatDate";
 import { getClientName } from "../../utils/getClientName";
+import {
+  dateRenderer,
+  valueRenderer,
+  statusRenderer,
+  booleanRenderer,
+  percentageRenderer,
+} from "../../utils/handsontableRenderers";
 
 export default function ProjectTable() {
   const navigate = useNavigate();
@@ -98,58 +105,7 @@ export default function ProjectTable() {
     "finance_administration",
   ].includes(userRole);
 
-  const formatValue = (val) => {
-    if (val == null || val === "" || val === undefined) return "-";
-
-    // kalau object, coba ambil key value/amount/nominal
-    if (typeof val === "object") {
-      const maybeNumber =
-        val.value ?? val.amount ?? val.nominal ?? val.total ?? null;
-      if (maybeNumber == null) return "-";
-      val = maybeNumber;
-    }
-
-    // parse ke number
-    const num = Number(val);
-    if (isNaN(num)) return "-";
-
-    return new Intl.NumberFormat("id-ID", {
-      style: "currency",
-      currency: "IDR",
-      minimumFractionDigits: 0,
-    }).format(num);
-  };
-
   // utils
-  const safeText = (val, fallback = "-") =>
-    val == null || val === "" ? fallback : String(val);
-
-  const dateRenderer = (instance, td, row, col, prop, value) => {
-    td.innerText = formatDate(value);
-    return td;
-  };
-
-  const valueRenderer = (instance, td, row, col, prop, value) => {
-    td.style.fontWeight = "600";
-    td.style.color = "green";
-    td.innerText = safeText(formatValue(value));
-    return td;
-  };
-
-  const percentRenderer = (instance, td, row, col, prop, value) => {
-    td.innerText = `${value != null ? value : 0}%`;
-    return td;
-  };
-
-  const statusRenderer = (instance, td, row, col, prop, value) => {
-    td.innerText = value?.name || "-";
-    return td;
-  };
-
-  const confirmationRenderer = (instance, td, row, col, prop, value) => {
-    td.innerText = Number(value) === 1 ? "✅ Yes" : "❌ No";
-    return td;
-  };
 
   // Definisi kolom
   const allColumns = useMemo(
@@ -271,47 +227,76 @@ export default function ProjectTable() {
           return td;
         },
       },
-      { data: "project_number", title: "Project Number" },
-      { data: "project_name", title: "Project Name" },
-      { data: "categories_name", title: "Category" },
-      { data: "no_quotation", title: "No. Quotation" },
-      { data: "client_name", title: "Client" },
-      { data: "phc_dates", title: "PHC Date", renderer: dateRenderer },
-      { data: "target_dates", title: "Target Date", renderer: dateRenderer },
+      { data: "project_number", title: "Project Number", readOnly: true },
+      { data: "project_name", title: "Project Name", readOnly: true },
+      { data: "categories_name", title: "Category", readOnly: true },
+      { data: "no_quotation", title: "No. Quotation", readOnly: true },
+      { data: "client_name", title: "Client", readOnly: true },
+      {
+        data: "phc_dates",
+        title: "PHC Date",
+        renderer: dateRenderer,
+        readOnly: true,
+      },
+      {
+        data: "target_dates",
+        title: "Target Date",
+        renderer: dateRenderer,
+        readOnly: true,
+      },
       {
         data: "dokumen_finish_date",
         title: "Document Finish Date",
         renderer: dateRenderer,
+        readOnly: true,
       },
       {
         data: "engineering_finish_date",
         title: "Engineering Finish Date",
         renderer: dateRenderer,
+        readOnly: true,
       },
-      { data: "po_number", title: "PO Number" },
-      { data: "po_value", title: "PO Value", renderer: valueRenderer },
-      { data: "po_date", title: "PO Date", renderer: dateRenderer },
-      { data: "sales_weeks", title: "Sales Weeks" },
-      { data: "mandays_engineer", title: "Mandays Engineer" },
-      { data: "mandays_technician", title: "Mandays Technician" },
-      { data: "material_status", title: "Material Status" },
-      { data: "jumlah_invoice", title: "Jumlah Invoice" },
+      { data: "po_number", title: "PO Number", readOnly: true },
+      {
+        data: "po_value",
+        title: "PO Value",
+        renderer: valueRenderer,
+        readOnly: true,
+      },
+      {
+        data: "po_date",
+        title: "PO Date",
+        renderer: dateRenderer,
+        readOnly: true,
+      },
+      { data: "sales_weeks", title: "Sales Weeks", readOnly: true },
+      { data: "mandays_engineer", title: "Mandays Engineer", readOnly: true },
+      {
+        data: "mandays_technician",
+        title: "Mandays Technician",
+        readOnly: true,
+      },
+      { data: "material_status", title: "Material Status", readOnly: true },
+      { data: "jumlah_invoice", title: "Jumlah Invoice", readOnly: true },
       {
         data: "project_progress",
         title: "Progress (%)",
-        renderer: percentRenderer,
+        renderer: percentageRenderer,
+        readOnly: true,
       },
       {
         data: "is_confirmation_order",
         title: "Confirmation Order",
-        renderer: confirmationRenderer,
+        renderer: booleanRenderer,
+        readOnly: true,
       },
-      { data: "parent_pn_number", title: "Parent PN" },
+      { data: "parent_pn_number", title: "Parent PN", readOnly: true },
       {
         data: "status_project",
         title: "Status",
         renderer: statusRenderer,
         width: 150,
+        readOnly: true,
       },
     ],
     [
@@ -523,54 +508,6 @@ export default function ProjectTable() {
     };
   }, [filters]);
 
-  const handleCellChange = async (changes, source) => {
-    if (source === "loadData" || !changes) return;
-
-    for (let [rowIndex, prop, oldValue, newValue] of changes) {
-      const project = projects[rowIndex];
-      if (oldValue === newValue) continue;
-
-      let payload = {};
-      switch (prop) {
-        case "status_project":
-          payload = { status_project_id: Number(newValue?.id) };
-          break;
-        case "categories_name":
-          payload = { category_id: Number(newValue?.id) || Number(newValue) };
-          break;
-        case "target_dates":
-          payload = { target_dates: newValue };
-          break;
-        default:
-          payload[prop] = newValue;
-      }
-
-      try {
-        const res = await api.put(`/projects/${project.pn_number}`, payload);
-        setProjects((prev) => {
-          const newProjects = [...prev];
-          newProjects[rowIndex] = {
-            ...newProjects[rowIndex],
-            ...res.data.data,
-          };
-          return newProjects;
-        });
-        setSnackbar({
-          open: true,
-          message: "Cell updated successfully!",
-          severity: "success",
-        });
-      } catch (err) {
-        console.error(err.response?.data || err);
-        setSnackbar({
-          open: true,
-          message: "Failed to update cell",
-          severity: "error",
-        });
-      }
-    }
-  };
-
   const filteredData = filterBySearch(projects, searchTerm).map((p) => ({
     actions: "",
     pn_number: p.pn_number, // untuk navigasi (pastikan konsisten)
@@ -685,7 +622,6 @@ export default function ProjectTable() {
             licenseKey="non-commercial-and-evaluation"
             manualColumnFreeze
             fixedColumnsLeft={3}
-            afterChange={handleCellChange}
             stretchH="all"
             filters
             dropdownMenu
@@ -699,6 +635,7 @@ export default function ProjectTable() {
                 .filter((i) => i !== null),
               indicators: true,
             }}
+            // Removed afterChange prop to disable inline editing
           />
         </div>
       </div>

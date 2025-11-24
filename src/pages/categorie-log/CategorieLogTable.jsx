@@ -22,6 +22,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import Swal from "sweetalert2";
 import api from "../../api/api";
 import LoadingOverlay from "../../components/loading/LoadingOverlay";
+import { textRenderer } from "../../utils/handsontableRenderers";
 
 export default function CategorieLogTable() {
   const hotTableRef = useRef(null);
@@ -107,10 +108,15 @@ export default function CategorieLogTable() {
         data: "actions",
         title: "Actions",
         renderer: actionsRenderer,
-        readOnly: true,
+        readOnly: true, // make actions column read only
         width: 30,
       },
-      { data: "name", title: "Name" },
+      {
+        data: "name",
+        title: "Name",
+        readOnly: true, // make name column read-only
+        renderer: textRenderer, // use renderer from handsontableRenderers.js
+      },
     ],
     [categories]
   );

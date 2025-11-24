@@ -25,6 +25,12 @@ import LoadingOverlay from "../../components/loading/LoadingOverlay";
 import FormTaxModal from "../../components/modal/FormTaxModal";
 import ViewTaxModal from "../../components/modal/ViewTaxModal";
 
+import {
+  dateRenderer,
+  textRenderer,
+  valueRenderer,
+} from "../../utils/handsontableRenderers";
+
 export default function TaxTable() {
   const hotTableRef = useRef(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -53,23 +59,25 @@ export default function TaxTable() {
   // Definisi kolom
   const allColumns = useMemo(
     () => [
-      { data: "id", title: "ID" },
-      { data: "name", title: "Name" },
+      { data: "id", title: "ID", readOnly: true, renderer: textRenderer },
+      { data: "name", title: "Name", readOnly: true, renderer: textRenderer },
+      { data: "rate", title: "Rate", readOnly: true, renderer: valueRenderer },
       {
-        data: "rate",
-        title: "Rate",
-        renderer: (instance, td, row, col, prop, value) => {
-          td.style.fontWeight = "600";
-          td.style.color = "blue";
-          td.innerText = value;
-          return td;
-        },
+        data: "created_at",
+        title: "Created At",
+        readOnly: true,
+        renderer: dateRenderer,
       },
-      { data: "created_at", title: "Created At" },
-      { data: "updated_at", title: "Updated At" },
+      {
+        data: "updated_at",
+        title: "Updated At",
+        readOnly: true,
+        renderer: dateRenderer,
+      },
       {
         data: "actions",
         title: "Actions",
+        readOnly: true,
         renderer: (instance, td, row) => {
           const tax = taxes[row];
           if (!tax) return td;

@@ -23,6 +23,9 @@ import Swal from "sweetalert2";
 import api from "../../api/api";
 import LoadingOverlay from "../../components/loading/LoadingOverlay";
 
+// Import renderers from handsontableRenderers
+import { textRenderer } from "../../utils/handsontableRenderers";
+
 export default function StatusProjectTable() {
   const hotTableRef = useRef(null);
   const [statuses, setStatuses] = useState([]);
@@ -111,46 +114,15 @@ export default function StatusProjectTable() {
         readOnly: true,
         width: 30,
       },
-      { data: "name", title: "Name" },
+      { data: "name", title: "Name", renderer: textRenderer, readOnly: true },
     ],
     [statuses]
   );
 
   // Inline edit handler
-  const afterChange = (changes, source) => {
-    if (source === "loadData" || !changes) return;
-
-    changes.forEach(([row, prop, oldValue, newValue]) => {
-      if (oldValue !== newValue) {
-        const rowData = hotTableRef.current.hotInstance.getSourceDataAtRow(row);
-        if (prop === "actions") return;
-
-        Swal.fire({
-          title: "Confirm Update?",
-          text: `Change ${prop} from "${oldValue}" to "${newValue}"?`,
-          icon: "warning",
-          showCancelButton: true,
-          confirmButtonText: "Yes, update",
-        }).then(async (result) => {
-          if (result.isConfirmed) {
-            try {
-              await api.put(`/status-projects/${rowData.id}`, {
-                ...rowData,
-                [prop]: newValue,
-              });
-              fetchStatuses();
-              Swal.fire("Updated!", "Status updated successfully.", "success");
-            } catch (error) {
-              console.error(error);
-              Swal.fire("Error", "Failed to update status", "error");
-              fetchStatuses();
-            }
-          } else {
-            fetchStatuses();
-          }
-        });
-      }
-    });
+  // Disabled afterChange handler because cells are now readOnly
+  const afterChange = () => {
+    return;
   };
 
   // Open modal form

@@ -27,6 +27,13 @@ import ColumnVisibilityModal from "../../components/ColumnVisibilityModal";
 import FilterBar from "../../components/filter/FilterBar";
 import { filterBySearch } from "../../utils/filter";
 import { getClientName } from "../../utils/getClientName";
+import {
+  dateRenderer,
+  textRenderer,
+  valueRenderer,
+  statusRenderer,
+} from "../../utils/handsontableRenderers";
+import { formatValue } from "../../utils/formatValue";
 
 export default function SalesReport() {
   const hotTableRef = useRef(null);
@@ -56,53 +63,6 @@ export default function SalesReport() {
     message: "",
     severity: "success",
   });
-
-  // === FORMATTER ===
-  const formatDate = (val) => {
-    if (!val) return "-";
-    try {
-      const date = new Date(val);
-      if (isNaN(date)) return "-";
-      const d = String(date.getDate()).padStart(2, "0");
-      const m = String(date.getMonth() + 1).padStart(2, "0");
-      return `${d}-${m}-${date.getFullYear()}`;
-    } catch {
-      return "-";
-    }
-  };
-
-  const formatValue = (val) => {
-    if (val == null || val === "" || isNaN(val)) return "-";
-    return new Intl.NumberFormat("id-ID", {
-      style: "currency",
-      currency: "IDR",
-      maximumFractionDigits: 0,
-    }).format(val);
-  };
-
-  const dateRenderer = (instance, td, row, col, prop, value) => {
-    td.innerText = formatDate(value);
-    td.style.color = "#000";
-    return td;
-  };
-
-  const textRenderer = (instance, td, row, col, prop, value) => {
-    td.innerText = value || "-";
-    td.style.color = "#000";
-    return td;
-  };
-
-  const valueRenderer = (instance, td, row, col, prop, value) => {
-    td.innerText = formatValue(value);
-    td.style.fontWeight = "600";
-    td.style.color = "green";
-    return td;
-  };
-
-  const statusRenderer = (instance, td, row, col, prop, value) => {
-    td.innerText = value || "-";
-    return td;
-  };
 
   // === COLUMNS ===
   const allColumns = useMemo(
@@ -193,7 +153,7 @@ export default function SalesReport() {
       const res = await api.get(`/sales-report?${params.toString()}`);
       const data = res.data.data.map((p, idx) => ({
         id: idx + 1,
-        project_number: p.pn_number || p.project_number,
+        project_number: p.project_number,
         project_name: p.project_name,
         client_name: getClientName(p),
         category_name: p.category?.name || "-",
@@ -315,11 +275,11 @@ export default function SalesReport() {
     page * pageSize + pageSize
   );
 
-  const rowHeight = 40; // tinggi tiap row
-  const headerHeight = 50; // tinggi header Handsontable
+  const rowHeight = 50; // updated tinggi tiap row to match ProjectTable
+  const headerHeight = 50; // keep header height same
   const tableHeight = Math.min(
-    paginatedData.length * rowHeight + headerHeight + 2,
-    window.innerHeight - 400
+    pageSize * rowHeight + headerHeight,
+    window.innerHeight - 250
   );
 
   const handleChangePage = (e, newPage) => setPage(newPage);
@@ -346,32 +306,70 @@ export default function SalesReport() {
       />
 
       {/* Summary Cards */}
-      <Grid container spacing={2} sx={{ mb: 2 }}>
+      <Grid container spacing={3} sx={{ mb: 3 }}>
         <Grid item xs={12} sm={6}>
-          <Card>
-            <CardContent>
-              <Stack direction="row" alignItems="center" spacing={1}>
-                <AttachMoneyIcon color="primary" />
-                <Typography variant="h6" component="div">
-                  Total Sales Value
+          <Card
+            elevation={6}
+            sx={{
+              borderRadius: 3,
+              transition: "box-shadow 0.3s ease-in-out",
+              "&:hover": {
+                boxShadow:
+                  "0px 12px 24px rgba(0, 0, 0, 0.12), 0px 8px 16px rgba(0, 0, 0, 0.08)",
+              },
+            }}
+          >
+            <CardContent sx={{ pb: 2 }}>
+              <Stack direction="row" alignItems="center" spacing={2} mb={1}>
+                <AttachMoneyIcon color="primary" fontSize="large" />
+                <Typography
+                  variant="h6"
+                  component="div"
+                  sx={{ fontWeight: "bold", color: "text.primary" }}
+                >
+                  Booking Sales
                 </Typography>
               </Stack>
-              <Typography variant="h4" color="primary">
-                {formatValue(filteredTotalValue || 0)}
+              <Typography
+                variant="h4"
+                color="primary"
+                sx={{ fontWeight: "700", letterSpacing: "0.02em" }}
+              >
+                {typeof formatValue(filteredTotalValue || 0) === "object"
+                  ? formatValue(filteredTotalValue || 0).formatted
+                  : formatValue(filteredTotalValue || 0)}
               </Typography>
             </CardContent>
           </Card>
         </Grid>
         <Grid item xs={12} sm={6}>
-          <Card>
-            <CardContent>
-              <Stack direction="row" alignItems="center" spacing={1}>
-                <DescriptionIcon color="primary" />
-                <Typography variant="h6" component="div">
+          <Card
+            elevation={6}
+            sx={{
+              borderRadius: 3,
+              transition: "box-shadow 0.3s ease-in-out",
+              "&:hover": {
+                boxShadow:
+                  "0px 12px 24px rgba(0, 0, 0, 0.12), 0px 8px 16px rgba(0, 0, 0, 0.08)",
+              },
+            }}
+          >
+            <CardContent sx={{ pb: 2 }}>
+              <Stack direction="row" alignItems="center" spacing={2} mb={1}>
+                <DescriptionIcon color="primary" fontSize="large" />
+                <Typography
+                  variant="h6"
+                  component="div"
+                  sx={{ fontWeight: "bold", color: "text.primary" }}
+                >
                   Total Projects
                 </Typography>
               </Stack>
-              <Typography variant="h4" color="primary">
+              <Typography
+                variant="h4"
+                color="primary"
+                sx={{ fontWeight: "700", letterSpacing: "0.02em" }}
+              >
                 {filteredCount || 0}
               </Typography>
             </CardContent>
@@ -487,8 +485,9 @@ export default function SalesReport() {
           colHeaders={allColumns.map((c) => c.title)}
           columns={allColumns}
           width="100%"
-          height={tableHeight} // <=== tinggi dinamis
-          rowHeights={rowHeight} // konsisten tinggi baris
+          height={tableHeight} // <=== updated tinggi dinamis consistent with ProjectTable
+          rowHeights={rowHeight} // konsisten tinggi baris 50 for parity with ProjectTable
+          autoRowSize={false} // added to fix height mismatch with frozen columns
           manualColumnResize
           licenseKey="non-commercial-and-evaluation"
           manualColumnFreeze

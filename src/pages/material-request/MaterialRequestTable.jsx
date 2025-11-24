@@ -29,7 +29,13 @@ import FormMrModal from "../../components/modal/FormMrModal";
 import LoadingOverlay from "../../components/loading/LoadingOverlay";
 import ColumnVisibilityModal from "../../components/ColumnVisibilityModal";
 import { filterBySearch } from "../../utils/filter";
-import { formatDate } from "../../utils/FormatDate";
+import {
+  formatDate,
+  dateRenderer,
+  textRenderer,
+  booleanRenderer,
+  statusRenderer,
+} from "../../utils/handsontableRenderers";
 
 export default function MaterialRequestTable() {
   const { pn_number } = useParams(); // ambil pn_number dari URL
@@ -371,33 +377,6 @@ export default function MaterialRequestTable() {
     wrapper.appendChild(handoverBtn);
 
     td.appendChild(wrapper);
-    return td;
-  };
-
-  const statusRenderer = (instance, td, row, col, prop, value) => {
-    td.innerText = value || "-";
-    return td;
-  };
-
-  const booleanRenderer = (instance, td, row, col, prop, value) => {
-    const isYes = Number(value) === 1;
-    const label = isYes ? "Yes" : "No";
-    const bgColor = isYes ? "#2196f3" : "transparent";
-    const color = isYes ? "white" : "black";
-    const border = isYes ? "none" : "1px solid #ccc";
-
-    td.innerHTML = `<span style="background-color: ${bgColor}; color: ${color}; border: ${border}; padding: 4px 8px; border-radius: 12px; font-size: 12px;">${label}</span>`;
-    return td;
-  };
-
-  const textRenderer = (instance, td, row, col, prop, value) => {
-    td.innerText = value || "-";
-    td.style.color = "black";
-    return td;
-  };
-
-  const dateRenderer = (instance, td, row, col, prop, value) => {
-    td.innerText = formatDate(value);
     return td;
   };
 

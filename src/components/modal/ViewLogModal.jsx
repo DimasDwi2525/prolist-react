@@ -85,6 +85,7 @@ export default function ViewLogModal({
         status: "approved",
         pin,
       });
+      setPin("");
       setPinModalOpen(false);
       onClose(); // Close modal after success
 
@@ -108,6 +109,21 @@ export default function ViewLogModal({
       });
     }
   };
+
+  // Reset pin when pin modal is closed
+  useEffect(() => {
+    if (!pinModalOpen) {
+      setPin("");
+    }
+  }, [pinModalOpen]);
+
+  // Reset pin when main modal closes
+  useEffect(() => {
+    if (!open) {
+      setPin("");
+      setPinModalOpen(false);
+    }
+  }, [open]);
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>

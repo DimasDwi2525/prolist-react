@@ -18,6 +18,7 @@ import {
 import Swal from "sweetalert2";
 import api from "../../api/api";
 import LoadingOverlay from "../../components/loading/LoadingOverlay";
+import { textRenderer } from "../../utils/handsontableRenderers";
 
 export default function DepartmentTable() {
   const hotTableRef = useRef(null);
@@ -98,7 +99,12 @@ export default function DepartmentTable() {
           return td;
         },
       },
-      { data: "name", title: "Department Name" },
+      {
+        data: "name",
+        title: "Department Name",
+        readOnly: true,
+        renderer: textRenderer,
+      },
     ],
     [departments]
   );

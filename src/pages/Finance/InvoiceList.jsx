@@ -21,6 +21,20 @@ import { filterBySearch } from "../../utils/filter";
 import { formatValue } from "../../utils/formatValue";
 import ViewInvoiceModal from "../../components/modal/ViewInvoiceModal";
 
+import {
+  dateRenderer,
+  textRenderer,
+  valueRenderer,
+  statusRenderer,
+} from "../../utils/handsontableRenderers";
+
+const paymentPercentageRenderer = (instance, td, row, col, prop, value) => {
+  td.style.fontWeight = "600";
+  td.style.color = "blue";
+  td.innerText = value + "%";
+  return td;
+};
+
 export default function InvoiceList() {
   const hotTableRef = useRef(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -123,59 +137,108 @@ export default function InvoiceList() {
         readOnly: true,
         width: 100,
       },
-      { data: "invoice_id", title: "Invoice ID" },
-      { data: "project_number", title: "Project Number" },
-      { data: "project_name", title: "Project Name" },
+      {
+        data: "invoice_id",
+        title: "Invoice ID",
+        readOnly: true,
+        renderer: textRenderer,
+      },
+      {
+        data: "project_number",
+        title: "Project Number",
+        readOnly: true,
+        renderer: textRenderer,
+      },
+      {
+        data: "project_name",
+        title: "Project Name",
+        readOnly: true,
+        renderer: textRenderer,
+      },
       {
         data: "po_value",
         title: "PO Value",
-        renderer: (instance, td, row, col, prop, value) => {
-          td.style.fontWeight = "600";
-          td.style.color = "green";
-          td.innerText = formatValue(value).formatted;
-          return td;
-        },
+        readOnly: true,
+        renderer: valueRenderer,
       },
-      { data: "po_number", title: "PO Number" },
-      { data: "client_name", title: "Client Name" },
-      { data: "invoice_type", title: "Invoice Type" },
-      { data: "no_faktur", title: "No Faktur" },
-      { data: "invoice_date", title: "Invoice Date" },
-      { data: "invoice_description", title: "Description" },
+      {
+        data: "po_number",
+        title: "PO Number",
+        readOnly: true,
+        renderer: textRenderer,
+      },
+      {
+        data: "client_name",
+        title: "Client Name",
+        readOnly: true,
+        renderer: textRenderer,
+      },
+      {
+        data: "invoice_type",
+        title: "Invoice Type",
+        readOnly: true,
+        renderer: textRenderer,
+      },
+      {
+        data: "no_faktur",
+        title: "No Faktur",
+        readOnly: true,
+        renderer: textRenderer,
+      },
+      {
+        data: "invoice_date",
+        title: "Invoice Date",
+        readOnly: true,
+        renderer: dateRenderer,
+      },
+      {
+        data: "invoice_description",
+        title: "Description",
+        readOnly: true,
+        renderer: textRenderer,
+      },
       {
         data: "invoice_value",
         title: "Invoice Value",
-        renderer: (instance, td, row, col, prop, value) => {
-          td.style.fontWeight = "600";
-          td.style.color = "green";
-          td.innerText = formatValue(value).formatted;
-          return td;
-        },
+        readOnly: true,
+        renderer: valueRenderer,
       },
-      { data: "invoice_due_date", title: "Due Date" },
-      { data: "payment_status", title: "Payment Status" },
+      {
+        data: "invoice_due_date",
+        title: "Due Date",
+        readOnly: true,
+        renderer: dateRenderer,
+      },
+      {
+        data: "payment_status",
+        title: "Payment Status",
+        readOnly: true,
+        renderer: statusRenderer,
+      },
       {
         data: "total_payment_amount",
         title: "Total Payment Amount",
-        renderer: (instance, td, row, col, prop, value) => {
-          td.style.fontWeight = "600";
-          td.style.color = "green";
-          td.innerText = formatValue(value).formatted;
-          return td;
-        },
+        readOnly: true,
+        renderer: valueRenderer,
       },
       {
         data: "payment_percentage",
         title: "Payment Percentage (%)",
-        renderer: (instance, td, row, col, prop, value) => {
-          td.style.fontWeight = "600";
-          td.style.color = "blue";
-          td.innerText = `${value}%`;
-          return td;
-        },
+        readOnly: true,
+        renderer: paymentPercentageRenderer,
       },
-      { data: "remarks", title: "Remarks" },
-      { data: "currency", title: "Currency" },
+      {
+        data: "remarks",
+        title: "Remarks",
+        readOnly: true,
+        renderer: textRenderer,
+      },
+      {
+        data: "currency",
+        title: "Currency",
+        readOnly: true,
+        renderer: textRenderer,
+      },
     ],
     []
   );

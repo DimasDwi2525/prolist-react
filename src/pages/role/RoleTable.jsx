@@ -19,6 +19,8 @@ import {
   DialogActions,
   Tooltip,
 } from "@mui/material";
+
+import { textRenderer } from "../../utils/handsontableRenderers";
 import Swal from "sweetalert2";
 import api from "../../api/api";
 import LoadingOverlay from "../../components/loading/LoadingOverlay";
@@ -113,8 +115,18 @@ export default function RoleTable() {
         },
       },
 
-      { data: "name", title: "Role Name" },
-      { data: "type_role", title: "Type" },
+      {
+        data: "name",
+        title: "Role Name",
+        readOnly: true,
+        renderer: textRenderer,
+      },
+      {
+        data: "type_role",
+        title: "Type",
+        readOnly: true,
+        renderer: textRenderer,
+      },
     ],
     [roles]
   );

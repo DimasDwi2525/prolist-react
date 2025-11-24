@@ -22,6 +22,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import Swal from "sweetalert2";
 import api from "../../api/api";
 import LoadingOverlay from "../../components/loading/LoadingOverlay";
+import { textRenderer } from "../../utils/handsontableRenderers";
 
 export default function CategorieProjectTable() {
   const hotTableRef = useRef(null);
@@ -111,8 +112,13 @@ export default function CategorieProjectTable() {
         readOnly: true,
         width: 100,
       },
-      { data: "name", title: "Name" },
-      { data: "description", title: "Description" },
+      { data: "name", title: "Name", readOnly: true, renderer: textRenderer },
+      {
+        data: "description",
+        title: "Description",
+        readOnly: true,
+        renderer: textRenderer,
+      },
     ],
     [categories]
   );

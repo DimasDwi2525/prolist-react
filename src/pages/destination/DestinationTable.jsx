@@ -23,6 +23,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import Swal from "sweetalert2";
 import api from "../../api/api";
 import LoadingOverlay from "../../components/loading/LoadingOverlay";
+import { textRenderer } from "../../utils/handsontableRenderers";
 
 export default function DestinationTable() {
   const hotTableRef = useRef(null);
@@ -114,9 +115,19 @@ export default function DestinationTable() {
         readOnly: true,
         width: 30,
       },
-      { data: "destination", title: "Destination", readOnly: true },
-      { data: "address", title: "Address", readOnly: true },
-      { data: "alias", title: "Alias", readOnly: true },
+      {
+        data: "destination",
+        title: "Destination",
+        renderer: textRenderer,
+        readOnly: true,
+      },
+      {
+        data: "address",
+        title: "Address",
+        renderer: textRenderer,
+        readOnly: true,
+      },
+      { data: "alias", title: "Alias", renderer: textRenderer, readOnly: true },
     ],
     [destinations]
   );

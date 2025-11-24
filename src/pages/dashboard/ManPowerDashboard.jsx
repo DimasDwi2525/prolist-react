@@ -10,9 +10,13 @@ import {
 } from "react-icons/fa";
 import api from "../../api/api";
 import LoadingScreen from "../../components/loading/loadingScreen";
-import { formatDate } from "../../utils/FormatDate";
 import { Modal, Box, Typography, IconButton } from "@mui/material";
 import { Close } from "@mui/icons-material";
+import { formatDate } from "../../utils/FormatDate";
+import {
+  dateRenderer,
+  statusRenderer,
+} from "../../utils/handsontableRenderers";
 
 const DashboardCard = ({ title, value, color, icon, onViewClick }) => {
   const displayValue = value === 0 ? "No data" : value || "No data available";
@@ -101,14 +105,10 @@ export default function ManPowerDashboard() {
         {
           data: "target_dates",
           title: "Target Date",
-          renderer: (instance, td, row, col, prop, value) => {
-            const displayValue = value ? formatDate(value) : "";
-            td.innerHTML = displayValue;
-            return td;
-          },
+          renderer: dateRenderer,
         },
         { data: "delay_days", title: "Delay (days)" },
-        { data: "status", title: "Status" },
+        { data: "status", title: "Status", renderer: statusRenderer },
       ]);
       setModalTitle("Project Overdue (POV)");
     } else if (type === "dueThisMonth") {
@@ -252,11 +252,7 @@ export default function ManPowerDashboard() {
                     type: "date",
                     dateFormat: "YYYY-MM-DD",
                     editor: false,
-                    renderer: (instance, td, row, col, prop, value) => {
-                      const displayValue = value ? formatDate(value) : "";
-                      td.innerHTML = displayValue;
-                      return td;
-                    },
+                    renderer: dateRenderer,
                   },
                   { data: "delay_days", type: "numeric", editor: false },
                   { data: "status", type: "text", editor: false },
@@ -303,11 +299,7 @@ export default function ManPowerDashboard() {
                       type: "date",
                       dateFormat: "YYYY-MM-DD",
                       editor: false,
-                      renderer: (instance, td, row, col, prop, value) => {
-                        const displayValue = value ? formatDate(value) : "";
-                        td.innerHTML = displayValue;
-                        return td;
-                      },
+                      renderer: dateRenderer,
                     },
                     { data: "status", type: "text", editor: false },
                   ]}
@@ -348,20 +340,22 @@ export default function ManPowerDashboard() {
                     "Status",
                   ]}
                   columns={[
-                    { data: "project_number", type: "text" },
-                    { data: "project_name", type: "text" },
-                    { data: "client_name", type: "text" },
+                    { data: "project_number", type: "text", editor: false },
+                    { data: "project_name", type: "text", editor: false },
+                    { data: "client_name", type: "text", editor: false },
                     {
                       data: "target_dates",
                       type: "date",
                       dateFormat: "YYYY-MM-DD",
-                      renderer: (instance, td, row, col, prop, value) => {
-                        const displayValue = value ? formatDate(value) : "";
-                        td.innerHTML = displayValue;
-                        return td;
-                      },
+                      renderer: dateRenderer,
+                      editor: false,
                     },
-                    { data: "status", type: "text" },
+                    {
+                      data: "status",
+                      type: "text",
+                      editor: false,
+                      renderer: statusRenderer,
+                    },
                   ]}
                   stretchH="all"
                   height={tableHeight}
