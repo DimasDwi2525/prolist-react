@@ -39,6 +39,7 @@ import {
   statusRenderer,
   booleanRenderer,
   percentageRenderer,
+  textRenderer,
 } from "../../utils/handsontableRenderers";
 
 export default function ProjectTable() {
@@ -227,11 +228,36 @@ export default function ProjectTable() {
           return td;
         },
       },
-      { data: "project_number", title: "Project Number", readOnly: true },
-      { data: "project_name", title: "Project Name", readOnly: true },
-      { data: "categories_name", title: "Category", readOnly: true },
-      { data: "no_quotation", title: "No. Quotation", readOnly: true },
-      { data: "client_name", title: "Client", readOnly: true },
+      {
+        data: "project_number",
+        title: "Project Number",
+        readOnly: true,
+        renderer: textRenderer,
+      },
+      {
+        data: "project_name",
+        title: "Project Name",
+        readOnly: true,
+        renderer: textRenderer,
+      },
+      {
+        data: "categories_name",
+        title: "Category",
+        readOnly: true,
+        renderer: textRenderer,
+      },
+      {
+        data: "no_quotation",
+        title: "No. Quotation",
+        readOnly: true,
+        renderer: textRenderer,
+      },
+      {
+        data: "client_name",
+        title: "Client",
+        readOnly: true,
+        renderer: textRenderer,
+      },
       {
         data: "phc_dates",
         title: "PHC Date",
@@ -488,6 +514,7 @@ export default function ProjectTable() {
 
   const handleFilterChange = (newFilters) => {
     setFilters(newFilters);
+    setPage(0); // Reset to page 1 when filter is applied
     const apiFilters = {
       year: newFilters.year,
       range_type: newFilters.rangeType,

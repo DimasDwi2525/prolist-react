@@ -23,6 +23,7 @@ import {
 import { Modal, Box, Typography, IconButton } from "@mui/material";
 import { Close } from "@mui/icons-material";
 import Echo from "../../echo";
+import { formatDate } from "../../utils/FormatDate";
 
 // Removed inline dateRenderer as we import from handsontableRenderers now
 
@@ -233,7 +234,7 @@ export default function EngineerDashboard() {
             return td;
           },
         },
-        { data: "delay_days", title: "Delay (days)" },
+        { data: "latest_log", title: "Latest Log" },
         { data: "status", title: "Status" },
       ]);
       setModalTitle("Overdue Projects");
@@ -402,7 +403,7 @@ export default function EngineerDashboard() {
                     "Client Name",
                     "PIC",
                     "Target Date",
-                    "Delay (days)",
+                    "Latest Log",
                     "Status",
                   ]}
                   columns={[
@@ -439,8 +440,8 @@ export default function EngineerDashboard() {
                       renderer: dateRenderer,
                     },
                     {
-                      data: "delay_days",
-                      type: "numeric",
+                      data: "latest_log",
+                      type: "text",
                       editor: false,
                       renderer: textRenderer,
                     },

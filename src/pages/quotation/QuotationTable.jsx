@@ -116,16 +116,20 @@ export default function QuotationTable() {
   }, []);
 
   useEffect(() => {
-    fetchQuotations();
+    // Fetch quotations with initial filters on mount
+    const apiFilters = {
+      year: filters.year,
+      range_type: filters.rangeType,
+      month: filters.month,
+      from_date: filters.from,
+      to_date: filters.to,
+    };
+    fetchQuotations(apiFilters);
   }, []);
-
-  // Reset page to 0 when search term changes
-  useEffect(() => {
-    setPage(0);
-  }, [searchTerm]);
 
   // Handle filter changes
   const handleFilterChange = (newFilters) => {
+    setPage(0); // Reset ke halaman pertama saat filter berubah
     setFilters(newFilters);
     const apiFilters = {
       year: newFilters.year,
@@ -182,8 +186,15 @@ export default function QuotationTable() {
 
       await api.put(`/quotations/${quotation_number}`, payload);
 
-      // ✅ Refresh data setelah update untuk menghindari masalah pagination
-      await fetchQuotations();
+      // ✅ Refresh data setelah update dengan filter yang sama
+      const apiFilters = {
+        year: filters.year,
+        range_type: filters.rangeType,
+        month: filters.month,
+        from_date: filters.from,
+        to_date: filters.to,
+      };
+      await fetchQuotations(apiFilters);
 
       setSnackbar({
         open: true,
@@ -336,7 +347,12 @@ export default function QuotationTable() {
         renderer: actionsRenderer,
         width: 90,
       },
-      { data: "no_quotation", title: "No. Quotation", width: 150 },
+      {
+        data: "no_quotation",
+        title: "No. Quotation",
+        width: 150,
+        editor: false,
+      },
       { data: "title_quotation", title: "Title", width: 250 },
       {
         data: "client_name",
@@ -688,7 +704,16 @@ export default function QuotationTable() {
         open={openCreateModal}
         onClose={() => setOpenCreateModal(false)}
         clients={clients}
-        onSave={fetchQuotations}
+        onSave={() => {
+          const apiFilters = {
+            year: filters.year,
+            range_type: filters.rangeType,
+            month: filters.month,
+            from_date: filters.from,
+            to_date: filters.to,
+          };
+          fetchQuotations(apiFilters);
+        }}
       />
 
       <QuotationDetailModal

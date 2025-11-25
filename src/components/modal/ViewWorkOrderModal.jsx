@@ -330,8 +330,8 @@ export default function ViewWorkOrderModal({
                         idx % 2 === 0 ? "bg-gray-50" : "bg-white"
                       } hover:bg-indigo-50 transition-colors`}
                     >
-                      <td className="px-4 py-2">{pic.user.name}</td>
-                      <td className="px-4 py-2">{pic.role.name}</td>
+                      <td className="px-4 py-2">{display(pic.user?.name)}</td>
+                      <td className="px-4 py-2">{display(pic.role?.name)}</td>
                     </tr>
                   ))}
                 </tbody>

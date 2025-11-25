@@ -107,7 +107,7 @@ export default function ManPowerDashboard() {
           title: "Target Date",
           renderer: dateRenderer,
         },
-        { data: "delay_days", title: "Delay (days)" },
+        { data: "latest_log", title: "Latest Log" },
         { data: "status", title: "Status", renderer: statusRenderer },
       ]);
       setModalTitle("Project Overdue (POV)");
@@ -239,7 +239,7 @@ export default function ManPowerDashboard() {
                   "Client Name",
                   "PIC",
                   "Target Date",
-                  "Delay (days)",
+                  "Latest Log",
                   "Status",
                 ]}
                 columns={[
@@ -254,7 +254,7 @@ export default function ManPowerDashboard() {
                     editor: false,
                     renderer: dateRenderer,
                   },
-                  { data: "delay_days", type: "numeric", editor: false },
+                  { data: "latest_log", type: "text", editor: false },
                   { data: "status", type: "text", editor: false },
                 ]}
                 stretchH="all"

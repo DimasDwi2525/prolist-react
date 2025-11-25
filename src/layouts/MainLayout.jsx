@@ -189,39 +189,37 @@ export default function MainLayout({ children }) {
       })
       .error((err) => console.error("❌ Echo channel error:", err));
 
-    // Listen to log approval updates on project-specific channels
-    const logApprovalChannels = projects.map((project) => {
-      const channelName = `logs.project.${project.id}`;
-      console.log(
-        `🔧 Setting up log approval listener for project ${project.id} on channel ${channelName}`
+    // Listen to log approval updates on public channel
+    const logApprovalChannel = window.Echo.channel("log.approval.updated")
+      .listen(".log.approval.updated", (e) => {
+        console.log("🔥 Log approval updated:", e);
+
+        // Skip notifying the approver
+        if (e.approver_id && e.approver_id === user.id) {
+          console.log("Approver user detected, skipping notification");
+          return;
+        }
+
+        if (!shownLogApprovalIds.has(e.log_id)) {
+          setShownLogApprovalIds((prev) => new Set(prev).add(e.log_id));
+          setNotifications((prev) => [
+            {
+              ...e,
+              type: "log_update",
+              data: { log_id: e.log_id, message: e.message },
+              id: Date.now(),
+              read_at: null,
+            },
+            ...prev,
+          ]);
+          toast.success(e.message || "Log approval updated", {
+            duration: 5000,
+          });
+        }
+      })
+      .error((err) =>
+        console.error("❌ Echo channel error for log approval:", err)
       );
-      return window.Echo.channel(channelName)
-        .listen(".log.approval.updated", (e) => {
-          console.log("🔥 Log approval updated:", e);
-          if (!shownLogApprovalIds.has(e.id)) {
-            setShownLogApprovalIds((prev) => new Set(prev).add(e.id));
-            setNotifications((prev) => [
-              {
-                ...e,
-                type: "log_update",
-                data: { log_id: e.log_id, message: e.message },
-                id: Date.now(),
-                read_at: null,
-              },
-              ...prev,
-            ]);
-            toast.success(e.message || "Log approval updated", {
-              duration: 5000,
-            });
-          }
-        })
-        .error((err) =>
-          console.error(
-            `❌ Echo channel error for log approval on project ${project.id}:`,
-            err
-          )
-        );
-    });
 
     const workOrderCreatedChannel = window.Echo.channel("workorder.created")
       .listen(".workorder.created", (e) => {
@@ -279,6 +277,15 @@ export default function MainLayout({ children }) {
     )
       .listen(".phc.approval.updated", (e) => {
         console.log("🔥 PHC approval updated event received:", e);
+
+        // Skip notifying the approver
+        if (e.approver_id && e.approver_id === user.id) {
+          console.log(
+            "Approver user detected, skipping PHC approval notification"
+          );
+          return;
+        }
+
         const phcId = e.phc_id || null;
         if (phcId && !shownPhcApprovalUpdateIds.has(phcId)) {
           setShownPhcApprovalUpdateIds((prev) => new Set(prev).add(phcId));
@@ -305,6 +312,15 @@ export default function MainLayout({ children }) {
     )
       .listen(".work_order.approval.updated", (e) => {
         console.log("🔥 Work Order approval updated event received:", e);
+
+        // Skip notifying the approver
+        if (e.approver_id && e.approver_id === user.id) {
+          console.log(
+            "Approver user detected, skipping Work Order approval notification"
+          );
+          return;
+        }
+
         const workOrderId = e.work_order_id || null;
         if (workOrderId && !shownWorkOrderApprovalUpdateIds.has(workOrderId)) {
           setShownWorkOrderApprovalUpdateIds((prev) =>
@@ -335,10 +351,7 @@ export default function MainLayout({ children }) {
       requestInvoiceChannel.stopListening(".request.invoice.created");
       notifChannel.stopListening("notification");
       logCreatedChannel.stopListening(".log.created");
-      // Stop listening to all log approval channels
-      logApprovalChannels.forEach((channel) => {
-        channel.stopListening(".log.approval.updated");
-      });
+      logApprovalChannel.stopListening(".log.approval.updated");
       workOrderCreatedChannel.stopListening(".workorder.created");
       workOrderUpdatedChannel.stopListening(".workorder.updated");
 
@@ -347,7 +360,7 @@ export default function MainLayout({ children }) {
         ".work_order.approval.updated"
       );
     };
-  }, []); // only once
+  }, [user, projects]); // run when user or projects change
 
   const handleReadNotification = async (id) => {
     if (!id || id === "undefined") {
