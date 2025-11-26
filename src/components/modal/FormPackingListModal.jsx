@@ -5,18 +5,13 @@ import {
   DialogContent,
   DialogActions,
   Button,
-  TextField,
-  Stack,
+  Box,
   Typography,
-  MenuItem,
+  TextField,
   Autocomplete,
-  IconButton,
-  CircularProgress,
+  FormHelperText,
 } from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close";
-import api from "../../api/api";
 import { sortOptions } from "../../helper/SortOptions";
-import ConfirmCreateDeliveryOrderModal from "./ConfirmCreateDeliveryOrderModal";
 
 export default function FormPackingListModal({
   open,
@@ -24,497 +19,477 @@ export default function FormPackingListModal({
   formValues,
   setFormValues,
   onSuccess,
-  mode = "create",
+  mode,
   projects = [],
   users = [],
   expeditions = [],
   plTypes = [],
   destinations = [],
 }) {
-  const [loading, setLoading] = useState(false);
-  const [loadingData, setLoadingData] = useState(true);
-  const [confirmModalOpen, setConfirmModalOpen] = useState(false);
-  const [createdPackingList, setCreatedPackingList] = useState(null);
-  const [confirmLoading, setConfirmLoading] = useState(false);
-  const [confirmData, setConfirmData] = useState(null);
+  const [errors, setErrors] = useState({});
+  const currentYear = new Date().getFullYear();
 
-  useEffect(() => {
-    setLoadingData(false); // Data is passed as props, no need to fetch
-  }, [projects, users]);
+  // NEW STATE to track the numeric part input independently
+  const [plNumberNumericInput, setPlNumberNumericInput] = useState(() => {
+    // Initialize from formValues on mount
+    const match = /^PL\/(\d{1,3})\/\d{4}$/.exec(formValues.pl_number || "");
+    return match ? match[1] : "";
+  });
 
-  // Reset form when modal opens for create mode
+  // Compose full pl_number from numeric part and current year
+  const composePlNumber = (numericPart) => {
+    if (!numericPart) return "";
+    return `PL/${numericPart.padStart(3, "0")}/${currentYear}`;
+  };
+
+  // Synchronize plNumberNumericInput when formValues.pl_number changes (like edit mode or props change)
   useEffect(() => {
-    if (open && mode === "create") {
-      setFormValues({
-        pn_id: "",
-        destination_id: "",
-        expedition_id: "",
-        pl_date: "",
-        ship_date: "",
-        pl_type_id: "",
-        client_pic: "",
-        int_pic: "",
-        receive_date: "",
-        pl_return_date: "",
-        remark: "",
-        pl_number: formValues.pl_number || "",
-        pl_id: formValues.pl_id || "",
-      });
+    const match = /^PL\/(\d{1,3})\/\d{4}$/.exec(formValues.pl_number || "");
+    const numericPart = match ? match[1] : "";
+    if (numericPart !== plNumberNumericInput) {
+      setPlNumberNumericInput(numericPart);
     }
-  }, [open, mode, setFormValues, formValues.pl_number, formValues.pl_id]);
+  }, [formValues.pl_number]);
 
-  // Fetch existing data for edit mode
-  useEffect(() => {
-    if (open && mode === "edit" && formValues.pl_id) {
-      const fetchPackingList = async () => {
-        try {
-          const res = await api.get(`/packing-lists/${formValues.pl_id}`);
-          const data = res.data.data || res.data;
-          setFormValues({
-            pn_id: data.pn_id || "",
-            destination_id: String(data.destination_id) || "",
-            expedition_id: String(data.expedition_id) || "",
-            pl_date: data.pl_date
-              ? new Date(data.pl_date).toISOString().split("T")[0]
-              : "",
-            ship_date: data.ship_date
-              ? new Date(data.ship_date).toISOString().split("T")[0]
-              : "",
-            pl_type_id: String(data.pl_type_id) || "",
-            client_pic: data.client_pic || "",
-            int_pic: data.int_pic
-              ? typeof data.int_pic === "object"
-                ? String(data.int_pic.id)
-                : String(data.int_pic)
-              : "",
-            receive_date: data.receive_date
-              ? new Date(data.receive_date).toISOString().split("T")[0]
-              : "",
-            pl_return_date: data.pl_return_date
-              ? new Date(data.pl_return_date).toISOString().split("T")[0]
-              : "",
-            remark: data.remark || "",
-            pl_number: data.pl_number || "",
-            pl_id: data.pl_id || "",
-          });
-        } catch (err) {
-          console.error("Failed to fetch packing list for edit:", err);
-        }
-      };
-      fetchPackingList();
-    }
-  }, [open, mode, formValues.pl_id, setFormValues]);
+  // Handle form field changes
+  const handleChange = (field, value) => {
+    if (field === "pl_number_numeric") {
+      // Restrict to digits and max length 3 - allow partial numeric input including empty string
+      let numeric = value.replace(/\D/g, "").slice(0, 3);
 
-  const handleInputChange = (field, value) =>
-    setFormValues((prev) => ({ ...prev, [field]: value }));
+      // Update local state to allow partial editing without resetting
+      setPlNumberNumericInput(numeric);
 
-  const handleSubmit = async () => {
-    setLoading(true);
-    try {
-      let res;
-      if (mode === "create") {
-        res = await api.post("/packing-lists", formValues);
-        const packingList = res.data.data || res.data;
-
-        // Check if Finance type and ship_date is set
-        const selectedPlType = plTypes.find(
-          (pt) => pt.id === formValues.pl_type_id
-        );
-
-        if (
-          selectedPlType &&
-          selectedPlType.name === "Finance" &&
-          formValues.ship_date
-        ) {
-          setCreatedPackingList(packingList);
-          // Fetch confirmation data
-          const data = await fetchConfirmData(packingList.pl_id);
-          setConfirmData(data);
-          setConfirmModalOpen(true);
-          setLoading(false);
-          return; // Don't close modal yet
-        }
-
-        onSuccess(packingList);
-        onClose();
-      } else if (mode === "edit") {
-        res = await api.put(`/packing-lists/${formValues.pl_id}`, formValues);
-        onSuccess(res.data.data || res.data);
-        onClose();
+      // Only update formValues.pl_number if numeric is fully empty or when user finishes editing
+      if (numeric === "") {
+        // Clear full pl_number in formValues when fully cleared
+        setFormValues((prev) => ({
+          ...prev,
+          pl_number: "",
+        }));
+      } else if (numeric.length === 3) {
+        // When complete 3 digits, update formValues with formatted pl_number
+        const newPlNumber = composePlNumber(numeric);
+        setFormValues((prev) => {
+          if (prev.pl_number !== newPlNumber) {
+            return {
+              ...prev,
+              pl_number: newPlNumber,
+            };
+          }
+          return prev;
+        });
       }
-    } catch (err) {
-      console.error(err.response?.data || err);
-      alert(
-        `Failed to ${mode} packing list: ${
-          err.response?.data?.message || err.message
-        }`
-      );
-    } finally {
-      setLoading(false);
+    } else {
+      setFormValues((prev) => ({
+        ...prev,
+        [field]: value,
+      }));
     }
+    // Clear error for field on change
+    setErrors((prev) => ({ ...prev, [field]: undefined }));
   };
 
-  const handleConfirmCreateDeliveryOrder = async () => {
-    setConfirmLoading(true);
-    try {
-      await api.post(
-        `/packing-lists/${createdPackingList.pl_id}/create-delivery-order`
-      );
-      onSuccess(createdPackingList);
-      setConfirmModalOpen(false);
-      onClose();
-    } catch (err) {
-      console.error(err.response?.data || err);
-      alert(
-        `Failed to create delivery order: ${
-          err.response?.data?.message || err.message
-        }`
-      );
-    } finally {
-      setConfirmLoading(false);
+  // Find selected project object by project_number
+  const selectedProject =
+    projects.find((p) => p.project_number === formValues.pn_id) || null;
+
+  // Find selected destination object by id
+  const selectedDestination =
+    destinations.find((d) => d.id === formValues.destination_id) || null;
+
+  // Validation function
+  const validate = () => {
+    const newErrors = {};
+
+    // Validate pl_number numeric part: required, 1-3 digits
+    const plNumNumeric = plNumberNumericInput;
+    if (!plNumNumeric) {
+      newErrors.pl_number_numeric = "PL Number is required";
+    } else if (!/^\d{1,3}$/.test(plNumNumeric)) {
+      newErrors.pl_number_numeric = "PL Number must be 1-3 digits";
     }
+
+    // Validate project
+    if (!formValues.pn_id) newErrors.pn_id = "Project is required";
+
+    // Validate destination
+    if (!formValues.destination_id)
+      newErrors.destination_id = "Destination is required";
+
+    // Validate pl_type_id
+    if (!formValues.pl_type_id) newErrors.pl_type_id = "PL Type is required";
+
+    // Validate expedition
+    if (!formValues.expedition_id)
+      newErrors.expedition_id = "Expedition is required";
+
+    // Validate int_pic
+    if (!formValues.int_pic) newErrors.int_pic = "PIC (Internal) is required";
+
+    // Additional date validations can be added here as needed
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
-  const fetchConfirmData = async (packingListId) => {
-    try {
-      const response = await api.get(
-        `/packing-lists/${packingListId}/confirm-delivery-order`
-      );
-      return response.data.data;
-    } catch (err) {
-      console.error("Failed to fetch confirmation data:", err);
-      return null;
-    }
-  };
+  // Handle form submit
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!validate()) return;
 
-  const handleSkipDeliveryOrder = () => {
-    onSuccess(createdPackingList);
-    setConfirmModalOpen(false);
-    onClose();
+    // Invoke onSuccess callback with current formValues
+    if (onSuccess) {
+      // Prepare clean formValues to send
+      const numericPart = plNumberNumericInput;
+      const payload = {
+        ...formValues,
+        pl_number: composePlNumber(numericPart),
+      };
+      onSuccess(payload);
+    }
   };
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle
-        sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
-        <div style={{ fontWeight: 600, fontSize: "1.25rem", lineHeight: 1.6 }}>
-          {mode === "create" ? "Create New Packing List" : "Edit Packing List"}
-        </div>
-        <div style={{ fontSize: "0.875rem", color: "rgba(0, 0, 0, 0.6)" }}>
-          PL Number: {formValues.pl_number || "-"}
-        </div>
-        <IconButton onClick={onClose}>
-          <CloseIcon />
-        </IconButton>
-      </DialogTitle>
+      <form onSubmit={handleSubmit} noValidate>
+        <DialogTitle sx={{ fontWeight: "bold" }}>
+          {mode === "create" ? "Create Packing List" : "Edit Packing List"}
+        </DialogTitle>
 
-      <Typography variant="body2" color="text.secondary" sx={{ px: 3, pb: 1 }}>
-        Fill in the details below to create a new packing list.
-      </Typography>
+        <DialogContent dividers>
+          {/* Section 1: Project Selection */}
+          <Box
+            sx={{
+              backgroundColor: "#f9fafb",
+              p: 3,
+              mb: 3,
+              borderRadius: 2,
+              boxShadow: "inset 0 0 0 1px #e5e7eb",
+            }}
+          >
+            <Typography variant="h6" gutterBottom>
+              Project Information
+            </Typography>
+            <Autocomplete
+              options={sortOptions(projects, "project_number")}
+              getOptionLabel={(option) => option.project_number || ""}
+              value={selectedProject}
+              onChange={(e, val) =>
+                handleChange("pn_id", val ? val.project_number : "")
+              }
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Project *"
+                  error={Boolean(errors.pn_id)}
+                  helperText={errors.pn_id}
+                  size="small"
+                  fullWidth
+                />
+              )}
+            />
+            {selectedProject && (
+              <Box
+                mt={2}
+                sx={{ bgcolor: "#fff", p: 2, borderRadius: 1, boxShadow: 1 }}
+              >
+                <Typography variant="body2" color="textSecondary">
+                  Project Name:
+                </Typography>
+                <Typography variant="body1" sx={{ mb: 1 }}>
+                  {selectedProject.project_name || "N/A"}
+                </Typography>
 
-      <DialogContent dividers>
-        <Stack spacing={3}>
-          {/* Project Autocomplete */}
-          <Autocomplete
-            size="small"
-            options={sortOptions(projects || [], "project_number")}
-            getOptionLabel={(option) => option.project_number || ""}
-            loading={loadingData}
-            value={
-              projects?.find((p) => p.pn_number === formValues.pn_id) || null
-            }
-            onChange={(_, newValue) =>
-              handleInputChange("pn_id", newValue ? newValue.pn_number : "")
-            }
-            isOptionEqualToValue={(option, value) =>
-              option.pn_number === value?.pn_id
-            }
-            renderInput={(params) => (
+                <Typography variant="body2" color="textSecondary">
+                  Client:
+                </Typography>
+                <Typography variant="body1" sx={{ mb: 1 }}>
+                  {selectedProject.client?.name ||
+                    selectedProject.quotation?.client?.name ||
+                    "N/A"}
+                </Typography>
+              </Box>
+            )}
+          </Box>
+
+          {/* Section 2: Destination Selection */}
+          <Box
+            sx={{
+              backgroundColor: "#f9fafb",
+              p: 3,
+              mb: 3,
+              borderRadius: 2,
+              boxShadow: "inset 0 0 0 1px #e5e7eb",
+            }}
+          >
+            <Typography variant="h6" gutterBottom>
+              Destination Information
+            </Typography>
+            <Autocomplete
+              options={sortOptions(destinations, "alias")}
+              getOptionLabel={(option) =>
+                option.alias ? `${option.alias}` : option.destination || ""
+              }
+              value={selectedDestination}
+              onChange={(e, val) =>
+                handleChange("destination_id", val ? val.id : "")
+              }
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Destination *"
+                  error={Boolean(errors.destination_id)}
+                  helperText={errors.destination_id}
+                  size="small"
+                  fullWidth
+                />
+              )}
+            />
+            {selectedDestination && (
+              <Box mt={2}>
+                <Typography variant="body2" color="textSecondary">
+                  Destination:
+                </Typography>
+                <Typography variant="body1" gutterBottom>
+                  {selectedDestination.destination || "N/A"}
+                </Typography>
+
+                <Typography variant="body2" color="textSecondary">
+                  Address:
+                </Typography>
+                <Typography variant="body1">
+                  {selectedDestination.address || "N/A"}
+                </Typography>
+              </Box>
+            )}
+          </Box>
+
+          {/* Section 3: Packing List Details */}
+          <Box
+            sx={{
+              backgroundColor: "#f9fafb",
+              p: 3,
+              mb: 3,
+              borderRadius: 2,
+              boxShadow: "inset 0 0 0 1px #e5e7eb",
+            }}
+          >
+            <Typography variant="h6" gutterBottom>
+              Packing List Details
+            </Typography>
+
+            {/* pl_number input: editable numeric part only */}
+            <Typography variant="body2" color="textSecondary" gutterBottom>
+              PL Number *
+            </Typography>
+            <Box display="flex" alignItems="center" mb={2}>
+              <Box
+                sx={{
+                  px: 1.5,
+                  py: 1,
+                  border: 1,
+                  borderColor: "grey.400",
+                  borderRight: 0,
+                  borderRadius: "6px 0 0 6px",
+                  bgcolor: "grey.100",
+                  color: "grey.600",
+                  userSelect: "none",
+                  fontSize: 16,
+                  fontWeight: 600,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  minWidth: 36,
+                }}
+              >
+                PL/
+              </Box>
               <TextField
-                {...params}
-                label="Project"
-                placeholder="Select project..."
-                InputProps={{
-                  ...params.InputProps,
-                  endAdornment: (
-                    <>
-                      {loadingData ? (
-                        <CircularProgress color="inherit" size={20} />
-                      ) : null}
-                      {params.InputProps.endAdornment}
-                    </>
-                  ),
+                size="small"
+                name="pl_number_numeric"
+                value={plNumberNumericInput}
+                onChange={(e) =>
+                  handleChange("pl_number_numeric", e.target.value)
+                }
+                inputProps={{
+                  maxLength: 3,
+                  pattern: "\\d{1,3}",
+                  inputMode: "numeric",
+                  style: { textAlign: "center" },
+                }}
+                error={Boolean(errors.pl_number_numeric)}
+                helperText={errors.pl_number_numeric}
+                sx={{
+                  width: 80,
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: 0,
+                    "& fieldset": { borderLeft: 0, borderRight: 0 },
+                  },
                 }}
               />
-            )}
-          />
-
-          {/* Destination */}
-          <Autocomplete
-            size="small"
-            options={sortOptions(destinations || [], "destination")}
-            getOptionLabel={(option) => option.destination || ""}
-            loading={loadingData}
-            value={
-              destinations?.find((d) => d.id == formValues.destination_id) ||
-              null
-            }
-            onChange={(_, newValue) =>
-              handleInputChange("destination_id", newValue ? newValue.id : "")
-            }
-            isOptionEqualToValue={(option, value) =>
-              option.id == value?.destination_id
-            }
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                label="Destination"
-                placeholder="Select destination..."
-                InputProps={{
-                  ...params.InputProps,
-                  endAdornment: (
-                    <>
-                      {loadingData ? (
-                        <CircularProgress color="inherit" size={20} />
-                      ) : null}
-                      {params.InputProps.endAdornment}
-                    </>
-                  ),
+              <Box
+                sx={{
+                  px: 1.5,
+                  py: 1,
+                  border: 1,
+                  borderColor: "grey.400",
+                  borderLeft: 0,
+                  borderRadius: "0 6px 6px 0",
+                  bgcolor: "grey.100",
+                  color: "grey.600",
+                  userSelect: "none",
+                  fontSize: 16,
+                  fontWeight: 600,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  minWidth: 36,
                 }}
-              />
-            )}
-          />
+              >
+                /{currentYear}
+              </Box>
+            </Box>
 
-          {/* Expedition */}
-          <Autocomplete
-            size="small"
-            options={sortOptions(expeditions || [], "name")}
-            getOptionLabel={(option) => option.name || ""}
-            loading={loadingData}
-            value={
-              expeditions?.find((e) => e.id == formValues.expedition_id) || null
-            }
-            onChange={(_, newValue) =>
-              handleInputChange("expedition_id", newValue ? newValue.id : "")
-            }
-            isOptionEqualToValue={(option, value) =>
-              option.id == value?.expedition_id
-            }
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                label="Expedition"
-                placeholder="Select expedition..."
-                InputProps={{
-                  ...params.InputProps,
-                  endAdornment: (
-                    <>
-                      {loadingData ? (
-                        <CircularProgress color="inherit" size={20} />
-                      ) : null}
-                      {params.InputProps.endAdornment}
-                    </>
-                  ),
-                }}
-              />
-            )}
-          />
+            {/* Other fields: expedition, pl_type, int_pic, client_pic, dates, remark */}
 
-          {/* Client pic Name */}
-          <TextField
-            label="Client PIC"
-            size="small"
-            fullWidth
-            value={formValues.client_pic}
-            onChange={(e) => handleInputChange("client_pic", e.target.value)}
-          />
+            <Autocomplete
+              options={sortOptions(expeditions, "name")}
+              getOptionLabel={(option) => option.name || ""}
+              value={
+                expeditions.find((e) => e.id === formValues.expedition_id) ||
+                null
+              }
+              onChange={(e, val) =>
+                handleChange("expedition_id", val ? val.id : "")
+              }
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Expedition *"
+                  error={Boolean(errors.expedition_id)}
+                  helperText={errors.expedition_id}
+                  size="small"
+                  fullWidth
+                  margin="normal"
+                />
+              )}
+            />
 
-          {/* PL Date & Ship Date */}
-          <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+            <Autocomplete
+              options={sortOptions(plTypes, "name")}
+              getOptionLabel={(option) => option.name || ""}
+              value={
+                plTypes.find((p) => p.id === formValues.pl_type_id) || null
+              }
+              onChange={(e, val) =>
+                handleChange("pl_type_id", val ? val.id : "")
+              }
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="PL Type *"
+                  error={Boolean(errors.pl_type_id)}
+                  helperText={errors.pl_type_id}
+                  size="small"
+                  fullWidth
+                  margin="normal"
+                />
+              )}
+            />
+
+            <Autocomplete
+              options={sortOptions(users, "name")}
+              getOptionLabel={(option) => option.name || ""}
+              value={users.find((u) => u.id === formValues.int_pic) || null}
+              onChange={(e, val) => handleChange("int_pic", val ? val.id : "")}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Internal PIC *"
+                  error={Boolean(errors.int_pic)}
+                  helperText={errors.int_pic}
+                  size="small"
+                  fullWidth
+                  margin="normal"
+                />
+              )}
+            />
+
+            <TextField
+              label="Client PIC"
+              size="small"
+              fullWidth
+              margin="normal"
+              value={formValues.client_pic || ""}
+              onChange={(e) => handleChange("client_pic", e.target.value)}
+            />
+
             <TextField
               label="PL Date"
               type="date"
               size="small"
               fullWidth
-              value={formValues.pl_date}
-              onChange={(e) => handleInputChange("pl_date", e.target.value)}
+              margin="normal"
               InputLabelProps={{ shrink: true }}
-              sx={{
-                "& .MuiInputBase-root": {
-                  borderRadius: 1,
-                  backgroundColor: "#fff",
-                },
-              }}
+              value={formValues.pl_date || ""}
+              onChange={(e) => handleChange("pl_date", e.target.value)}
             />
+
             <TextField
               label="Ship Date"
               type="date"
               size="small"
               fullWidth
-              value={formValues.ship_date}
-              onChange={(e) => handleInputChange("ship_date", e.target.value)}
+              margin="normal"
               InputLabelProps={{ shrink: true }}
-              sx={{
-                "& .MuiInputBase-root": {
-                  borderRadius: 1,
-                  backgroundColor: "#fff",
-                },
-              }}
+              value={formValues.ship_date || ""}
+              onChange={(e) => handleChange("ship_date", e.target.value)}
             />
-          </Stack>
 
-          {/* PL Type */}
-          <Autocomplete
-            size="small"
-            options={sortOptions(plTypes || [], "name")}
-            getOptionLabel={(option) => option.name || ""}
-            loading={loadingData}
-            value={plTypes?.find((p) => p.id == formValues.pl_type_id) || null}
-            onChange={(_, newValue) =>
-              handleInputChange("pl_type_id", newValue ? newValue.id : "")
-            }
-            isOptionEqualToValue={(option, value) =>
-              option.id == value?.pl_type_id
-            }
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                label="PL Type"
-                placeholder="Select PL type..."
-                InputProps={{
-                  ...params.InputProps,
-                  endAdornment: (
-                    <>
-                      {loadingData ? (
-                        <CircularProgress color="inherit" size={20} />
-                      ) : null}
-                      {params.InputProps.endAdornment}
-                    </>
-                  ),
-                }}
-              />
-            )}
-          />
-
-          {/* Internal PIC Autocomplete */}
-          <Autocomplete
-            size="small"
-            options={sortOptions(users || [], "name")}
-            getOptionLabel={(option) => option.name || ""}
-            loading={loadingData}
-            value={users?.find((u) => u.id == formValues.int_pic) || null}
-            onChange={(_, newValue) =>
-              handleInputChange("int_pic", newValue ? newValue.id : "")
-            }
-            isOptionEqualToValue={(option, value) =>
-              option.id == value?.int_pic
-            }
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                label="Internal PIC"
-                placeholder="Select internal PIC..."
-                InputProps={{
-                  ...params.InputProps,
-                  endAdornment: (
-                    <>
-                      {loadingData ? (
-                        <CircularProgress color="inherit" size={20} />
-                      ) : null}
-                      {params.InputProps.endAdornment}
-                    </>
-                  ),
-                }}
-              />
-            )}
-          />
-
-          {/* Receive Date & PL Return Date */}
-          <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
             <TextField
               label="Receive Date"
               type="date"
               size="small"
               fullWidth
-              value={formValues.receive_date}
-              onChange={(e) =>
-                handleInputChange("receive_date", e.target.value)
-              }
+              margin="normal"
               InputLabelProps={{ shrink: true }}
-              sx={{
-                "& .MuiInputBase-root": {
-                  borderRadius: 1,
-                  backgroundColor: "#fff",
-                },
-              }}
+              value={formValues.receive_date || ""}
+              onChange={(e) => handleChange("receive_date", e.target.value)}
             />
+
             <TextField
               label="PL Return Date"
               type="date"
               size="small"
               fullWidth
-              value={formValues.pl_return_date}
-              onChange={(e) =>
-                handleInputChange("pl_return_date", e.target.value)
-              }
+              margin="normal"
               InputLabelProps={{ shrink: true }}
-              sx={{
-                "& .MuiInputBase-root": {
-                  borderRadius: 1,
-                  backgroundColor: "#fff",
-                },
-              }}
+              value={formValues.pl_return_date || ""}
+              onChange={(e) => handleChange("pl_return_date", e.target.value)}
             />
-          </Stack>
 
-          {/* Remark */}
-          <TextField
-            label="Remark"
-            size="small"
-            fullWidth
-            multiline
-            rows={3}
-            value={formValues.remark}
-            onChange={(e) => handleInputChange("remark", e.target.value)}
-          />
-        </Stack>
-      </DialogContent>
+            <TextField
+              label="Remarks"
+              multiline
+              rows={3}
+              fullWidth
+              margin="normal"
+              value={formValues.remark || ""}
+              onChange={(e) => handleChange("remark", e.target.value)}
+            />
+          </Box>
+        </DialogContent>
 
-      <DialogActions sx={{ px: 3, py: 2 }}>
-        <Button onClick={onClose} variant="outlined" color="inherit">
-          Cancel
-        </Button>
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={handleSubmit}
-          disabled={loading}
-        >
-          {loading
-            ? "Saving..."
-            : mode === "create"
-            ? "Create Packing List"
-            : "Update Packing List"}
-        </Button>
-      </DialogActions>
-
-      {/* Confirm Create Delivery Order Modal */}
-      <ConfirmCreateDeliveryOrderModal
-        open={confirmModalOpen}
-        onClose={() => {
-          setConfirmModalOpen(false);
-          handleSkipDeliveryOrder();
-        }}
-        onConfirm={handleConfirmCreateDeliveryOrder}
-        loading={confirmLoading}
-        packingList={createdPackingList}
-        confirmData={confirmData}
-      />
+        <DialogActions>
+          <Button onClick={onClose} color="inherit" variant="outlined">
+            Cancel
+          </Button>
+          <Button type="submit" variant="contained" color="primary">
+            {mode === "create" ? "Create" : "Update"}
+          </Button>
+        </DialogActions>
+      </form>
     </Dialog>
   );
 }
