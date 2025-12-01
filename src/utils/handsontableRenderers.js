@@ -109,8 +109,6 @@ export const booleanRenderer = (instance, td, row, col, prop, value) => {
 };
 
 export const percentageRenderer = (instance, td, row, col, prop, value) => {
-  td.style.fontWeight = "600";
-  td.style.color = "blue";
-  td.innerText = `${value}%`;
+  td.innerText = `${value != null ? value : 0}%`;
   return td;
 };

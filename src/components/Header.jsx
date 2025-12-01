@@ -10,6 +10,7 @@ export default function Header({
   fullScreenHandle,
   notifications,
   onReadNotification,
+  onLogout,
 }) {
   return (
     <header className="bg-white border-b shadow-sm px-4 py-2 flex items-center justify-between">
@@ -72,7 +73,7 @@ export default function Header({
         />
 
         {/* Profil */}
-        <ProfileDropdown user={user} />
+        <ProfileDropdown user={user} onLogout={onLogout} />
       </div>
     </header>
   );

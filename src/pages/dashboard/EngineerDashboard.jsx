@@ -22,8 +22,9 @@ import {
 } from "../../utils/handsontableRenderers";
 import { Modal, Box, Typography, IconButton } from "@mui/material";
 import { Close } from "@mui/icons-material";
-import Echo from "../../echo";
+// import Echo from "../../echo";
 import { formatDate } from "../../utils/FormatDate";
+import ViewProjectsModal from "../../components/modal/ViewProjectsModal";
 
 // Removed inline dateRenderer as we import from handsontableRenderers now
 
@@ -73,6 +74,9 @@ export default function EngineerDashboard() {
   const [modalData, setModalData] = useState([]);
   const [modalColumns, setModalColumns] = useState([]);
   const [modalTitle, setModalTitle] = useState("");
+  const [openViewProjectsModal, setOpenViewProjectsModal] = useState(false);
+  const [selectedPnNumberForViewProjects, setSelectedPnNumberForViewProjects] =
+    useState(null);
 
   const lineChartRef = useRef(null);
   const pieChartRef = useRef(null);
@@ -185,17 +189,17 @@ export default function EngineerDashboard() {
     fetchDashboardData();
   }, [fetchDashboardData]);
 
-  useEffect(() => {
-    const channel = Echo.channel("engineer.dashboard.updated");
-    channel.listen(".dashboard.updated", (e) => {
-      console.log("Dashboard updated event received:", e);
-      fetchDashboardData();
-    });
+  // useEffect(() => {
+  //   const channel = Echo.channel("engineer.dashboard.updated");
+  //   channel.listen(".dashboard.updated", (e) => {
+  //     console.log("Dashboard updated event received:", e);
+  //     fetchDashboardData();
+  //   });
 
-    return () => {
-      channel.stopListening(".dashboard.updated");
-    };
-  }, [fetchDashboardData]);
+  //   return () => {
+  //     channel.stopListening(".dashboard.updated");
+  //   };
+  // }, [fetchDashboardData]);
 
   useEffect(() => {
     if (stats) renderCharts(stats);
@@ -220,8 +224,63 @@ export default function EngineerDashboard() {
 
   const handleViewClick = (type) => {
     if (type === "overdue") {
-      setModalData(stats.top5Overdue);
+      setModalData(stats.top5Overdue.map((p) => ({ ...p, actions: "" })));
       setModalColumns([
+        {
+          data: "actions",
+          title: "Actions",
+          readOnly: true,
+          width: 90,
+          renderer: (instance, td, row) => {
+            td.innerHTML = "";
+
+            const wrapper = document.createElement("div");
+            wrapper.style.display = "flex";
+            wrapper.style.alignItems = "center";
+            wrapper.style.gap = "6px";
+
+            const viewBtn = document.createElement("button");
+            viewBtn.style.cursor = "pointer";
+            viewBtn.style.border = "none";
+            viewBtn.style.background = "#e8f5e8";
+            viewBtn.style.padding = "8px";
+            viewBtn.style.borderRadius = "4px";
+            viewBtn.style.color = "#2e7d32";
+            viewBtn.style.display = "flex";
+            viewBtn.style.alignItems = "center";
+            viewBtn.style.justifyContent = "center";
+            viewBtn.style.width = "40px";
+            viewBtn.style.transition = "all 0.15s cubic-bezier(0.4, 0, 0.2, 1)";
+            viewBtn.style.boxShadow = "0 1px 2px rgba(0,0,0,0.1)";
+            viewBtn.title = "View";
+            viewBtn.innerHTML =
+              '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>';
+            viewBtn.onmouseover = () => {
+              viewBtn.style.backgroundColor = "#2e7d32";
+              viewBtn.style.color = "#fff";
+              viewBtn.style.boxShadow = "0 2px 6px rgba(46, 125, 50, 0.3)";
+              viewBtn.style.transform = "translateY(-1px)";
+            };
+            viewBtn.onmouseout = () => {
+              viewBtn.style.backgroundColor = "#e8f5e8";
+              viewBtn.style.color = "#2e7d32";
+              viewBtn.style.boxShadow = "0 1px 2px rgba(0,0,0,0.1)";
+              viewBtn.style.transform = "translateY(0)";
+            };
+
+            viewBtn.onclick = () => {
+              const project = instance.getSourceDataAtRow(row);
+              if (project?.pn_number) {
+                setSelectedPnNumberForViewProjects(project.pn_number);
+                setOpenViewProjectsModal(true);
+              }
+            };
+
+            wrapper.appendChild(viewBtn);
+            td.appendChild(wrapper);
+            return td;
+          },
+        },
         { data: "project_number", title: "Project Number" },
         { data: "project_name", title: "Project Name" },
         { data: "pic", title: "PIC" },
@@ -239,8 +298,65 @@ export default function EngineerDashboard() {
       ]);
       setModalTitle("Overdue Projects");
     } else if (type === "dueThisMonth") {
-      setModalData(stats.projectDueThisMonthList);
+      setModalData(
+        stats.projectDueThisMonthList.map((p) => ({ ...p, actions: "" }))
+      );
       setModalColumns([
+        {
+          data: "actions",
+          title: "Actions",
+          readOnly: true,
+          width: 90,
+          renderer: (instance, td, row) => {
+            td.innerHTML = "";
+
+            const wrapper = document.createElement("div");
+            wrapper.style.display = "flex";
+            wrapper.style.alignItems = "center";
+            wrapper.style.gap = "6px";
+
+            const viewBtn = document.createElement("button");
+            viewBtn.style.cursor = "pointer";
+            viewBtn.style.border = "none";
+            viewBtn.style.background = "#e8f5e8";
+            viewBtn.style.padding = "8px";
+            viewBtn.style.borderRadius = "4px";
+            viewBtn.style.color = "#2e7d32";
+            viewBtn.style.display = "flex";
+            viewBtn.style.alignItems = "center";
+            viewBtn.style.justifyContent = "center";
+            viewBtn.style.width = "40px";
+            viewBtn.style.transition = "all 0.15s cubic-bezier(0.4, 0, 0.2, 1)";
+            viewBtn.style.boxShadow = "0 1px 2px rgba(0,0,0,0.1)";
+            viewBtn.title = "View";
+            viewBtn.innerHTML =
+              '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>';
+            viewBtn.onmouseover = () => {
+              viewBtn.style.backgroundColor = "#2e7d32";
+              viewBtn.style.color = "#fff";
+              viewBtn.style.boxShadow = "0 2px 6px rgba(46, 125, 50, 0.3)";
+              viewBtn.style.transform = "translateY(-1px)";
+            };
+            viewBtn.onmouseout = () => {
+              viewBtn.style.backgroundColor = "#e8f5e8";
+              viewBtn.style.color = "#2e7d32";
+              viewBtn.style.boxShadow = "0 1px 2px rgba(0,0,0,0.1)";
+              viewBtn.style.transform = "translateY(0)";
+            };
+
+            viewBtn.onclick = () => {
+              const project = instance.getSourceDataAtRow(row);
+              if (project?.pn_number) {
+                setSelectedPnNumberForViewProjects(project.pn_number);
+                setOpenViewProjectsModal(true);
+              }
+            };
+
+            wrapper.appendChild(viewBtn);
+            td.appendChild(wrapper);
+            return td;
+          },
+        },
         { data: "project_number", title: "Project Number" },
         { data: "project_name", title: "Project Name" },
         { data: "pic", title: "PIC" },
@@ -255,10 +371,67 @@ export default function EngineerDashboard() {
         },
         { data: "status", title: "Status" },
       ]);
-      setModalTitle("Overdue Projects");
+      setModalTitle("Projects Due This Month");
     } else if (type === "onTrack") {
-      setModalData(stats.projectOnTrackList);
+      setModalData(
+        stats.projectOnTrackList.map((p) => ({ ...p, actions: "" }))
+      );
       setModalColumns([
+        {
+          data: "actions",
+          title: "Actions",
+          readOnly: true,
+          width: 90,
+          renderer: (instance, td, row) => {
+            td.innerHTML = "";
+
+            const wrapper = document.createElement("div");
+            wrapper.style.display = "flex";
+            wrapper.style.alignItems = "center";
+            wrapper.style.gap = "6px";
+
+            const viewBtn = document.createElement("button");
+            viewBtn.style.cursor = "pointer";
+            viewBtn.style.border = "none";
+            viewBtn.style.background = "#e8f5e8";
+            viewBtn.style.padding = "8px";
+            viewBtn.style.borderRadius = "4px";
+            viewBtn.style.color = "#2e7d32";
+            viewBtn.style.display = "flex";
+            viewBtn.style.alignItems = "center";
+            viewBtn.style.justifyContent = "center";
+            viewBtn.style.width = "40px";
+            viewBtn.style.transition = "all 0.15s cubic-bezier(0.4, 0, 0.2, 1)";
+            viewBtn.style.boxShadow = "0 1px 2px rgba(0,0,0,0.1)";
+            viewBtn.title = "View";
+            viewBtn.innerHTML =
+              '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>';
+            viewBtn.onmouseover = () => {
+              viewBtn.style.backgroundColor = "#2e7d32";
+              viewBtn.style.color = "#fff";
+              viewBtn.style.boxShadow = "0 2px 6px rgba(46, 125, 50, 0.3)";
+              viewBtn.style.transform = "translateY(-1px)";
+            };
+            viewBtn.onmouseout = () => {
+              viewBtn.style.backgroundColor = "#e8f5e8";
+              viewBtn.style.color = "#2e7d32";
+              viewBtn.style.boxShadow = "0 1px 2px rgba(0,0,0,0.1)";
+              viewBtn.style.transform = "translateY(0)";
+            };
+
+            viewBtn.onclick = () => {
+              const project = instance.getSourceDataAtRow(row);
+              if (project?.project_number) {
+                setSelectedPnNumberForViewProjects(project.project_number);
+                setOpenViewProjectsModal(true);
+              }
+            };
+
+            wrapper.appendChild(viewBtn);
+            td.appendChild(wrapper);
+            return td;
+          },
+        },
         { data: "project_number", title: "Project Number" },
         { data: "project_name", title: "Project Name" },
         { data: "pic", title: "PIC" },
@@ -396,8 +569,9 @@ export default function EngineerDashboard() {
             <div className="table-wrapper">
               <div className="table-inner">
                 <HotTable
-                  data={stats.top5Overdue}
+                  data={stats.top5Overdue.map((p) => ({ ...p, actions: "" }))}
                   colHeaders={[
+                    "Actions",
                     "Project Number",
                     "Project Name",
                     "Client Name",
@@ -407,6 +581,65 @@ export default function EngineerDashboard() {
                     "Status",
                   ]}
                   columns={[
+                    {
+                      data: "actions",
+                      title: "Actions",
+                      readOnly: true,
+                      width: 90,
+                      renderer: (instance, td, row) => {
+                        td.innerHTML = "";
+
+                        const wrapper = document.createElement("div");
+                        wrapper.style.display = "flex";
+                        wrapper.style.alignItems = "center";
+                        wrapper.style.gap = "6px";
+
+                        const viewBtn = document.createElement("button");
+                        viewBtn.style.cursor = "pointer";
+                        viewBtn.style.border = "none";
+                        viewBtn.style.background = "#e8f5e8";
+                        viewBtn.style.padding = "8px";
+                        viewBtn.style.borderRadius = "4px";
+                        viewBtn.style.color = "#2e7d32";
+                        viewBtn.style.display = "flex";
+                        viewBtn.style.alignItems = "center";
+                        viewBtn.style.justifyContent = "center";
+                        viewBtn.style.width = "40px";
+                        viewBtn.style.transition =
+                          "all 0.15s cubic-bezier(0.4, 0, 0.2, 1)";
+                        viewBtn.style.boxShadow = "0 1px 2px rgba(0,0,0,0.1)";
+                        viewBtn.title = "View";
+                        viewBtn.innerHTML =
+                          '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>';
+                        viewBtn.onmouseover = () => {
+                          viewBtn.style.backgroundColor = "#2e7d32";
+                          viewBtn.style.color = "#fff";
+                          viewBtn.style.boxShadow =
+                            "0 2px 6px rgba(46, 125, 50, 0.3)";
+                          viewBtn.style.transform = "translateY(-1px)";
+                        };
+                        viewBtn.onmouseout = () => {
+                          viewBtn.style.backgroundColor = "#e8f5e8";
+                          viewBtn.style.color = "#2e7d32";
+                          viewBtn.style.boxShadow = "0 1px 2px rgba(0,0,0,0.1)";
+                          viewBtn.style.transform = "translateY(0)";
+                        };
+
+                        viewBtn.onclick = () => {
+                          const project = instance.getSourceDataAtRow(row);
+                          if (project?.pn_number) {
+                            setSelectedPnNumberForViewProjects(
+                              project.pn_number
+                            );
+                            setOpenViewProjectsModal(true);
+                          }
+                        };
+
+                        wrapper.appendChild(viewBtn);
+                        td.appendChild(wrapper);
+                        return td;
+                      },
+                    },
                     {
                       data: "project_number",
                       type: "text",
@@ -480,8 +713,12 @@ export default function EngineerDashboard() {
             <div className="table-wrapper">
               <div className="table-inner">
                 <HotTable
-                  data={stats.projectDueThisMonthList}
+                  data={stats.projectDueThisMonthList.map((p) => ({
+                    ...p,
+                    actions: "",
+                  }))}
                   colHeaders={[
+                    "Actions",
                     "Project Number",
                     "Project Name",
                     "Client Name",
@@ -490,6 +727,65 @@ export default function EngineerDashboard() {
                     "Status",
                   ]}
                   columns={[
+                    {
+                      data: "actions",
+                      title: "Actions",
+                      readOnly: true,
+                      width: 90,
+                      renderer: (instance, td, row) => {
+                        td.innerHTML = "";
+
+                        const wrapper = document.createElement("div");
+                        wrapper.style.display = "flex";
+                        wrapper.style.alignItems = "center";
+                        wrapper.style.gap = "6px";
+
+                        const viewBtn = document.createElement("button");
+                        viewBtn.style.cursor = "pointer";
+                        viewBtn.style.border = "none";
+                        viewBtn.style.background = "#e8f5e8";
+                        viewBtn.style.padding = "8px";
+                        viewBtn.style.borderRadius = "4px";
+                        viewBtn.style.color = "#2e7d32";
+                        viewBtn.style.display = "flex";
+                        viewBtn.style.alignItems = "center";
+                        viewBtn.style.justifyContent = "center";
+                        viewBtn.style.width = "40px";
+                        viewBtn.style.transition =
+                          "all 0.15s cubic-bezier(0.4, 0, 0.2, 1)";
+                        viewBtn.style.boxShadow = "0 1px 2px rgba(0,0,0,0.1)";
+                        viewBtn.title = "View";
+                        viewBtn.innerHTML =
+                          '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>';
+                        viewBtn.onmouseover = () => {
+                          viewBtn.style.backgroundColor = "#2e7d32";
+                          viewBtn.style.color = "#fff";
+                          viewBtn.style.boxShadow =
+                            "0 2px 6px rgba(46, 125, 50, 0.3)";
+                          viewBtn.style.transform = "translateY(-1px)";
+                        };
+                        viewBtn.onmouseout = () => {
+                          viewBtn.style.backgroundColor = "#e8f5e8";
+                          viewBtn.style.color = "#2e7d32";
+                          viewBtn.style.boxShadow = "0 1px 2px rgba(0,0,0,0.1)";
+                          viewBtn.style.transform = "translateY(0)";
+                        };
+
+                        viewBtn.onclick = () => {
+                          const project = instance.getSourceDataAtRow(row);
+                          if (project?.pn_number) {
+                            setSelectedPnNumberForViewProjects(
+                              project.pn_number
+                            );
+                            setOpenViewProjectsModal(true);
+                          }
+                        };
+
+                        wrapper.appendChild(viewBtn);
+                        td.appendChild(wrapper);
+                        return td;
+                      },
+                    },
                     {
                       data: "project_number",
                       type: "text",
@@ -557,8 +853,12 @@ export default function EngineerDashboard() {
             <div className="table-wrapper">
               <div className="table-inner">
                 <HotTable
-                  data={stats.upcomingProjects}
+                  data={stats.upcomingProjects.map((p) => ({
+                    ...p,
+                    actions: "",
+                  }))}
                   colHeaders={[
+                    "Actions",
                     "Project Number",
                     "Project Name",
                     "Client Name",
@@ -566,6 +866,65 @@ export default function EngineerDashboard() {
                     "Status",
                   ]}
                   columns={[
+                    {
+                      data: "actions",
+                      title: "Actions",
+                      readOnly: true,
+                      width: 90,
+                      renderer: (instance, td, row) => {
+                        td.innerHTML = "";
+
+                        const wrapper = document.createElement("div");
+                        wrapper.style.display = "flex";
+                        wrapper.style.alignItems = "center";
+                        wrapper.style.gap = "6px";
+
+                        const viewBtn = document.createElement("button");
+                        viewBtn.style.cursor = "pointer";
+                        viewBtn.style.border = "none";
+                        viewBtn.style.background = "#e8f5e8";
+                        viewBtn.style.padding = "8px";
+                        viewBtn.style.borderRadius = "4px";
+                        viewBtn.style.color = "#2e7d32";
+                        viewBtn.style.display = "flex";
+                        viewBtn.style.alignItems = "center";
+                        viewBtn.style.justifyContent = "center";
+                        viewBtn.style.width = "40px";
+                        viewBtn.style.transition =
+                          "all 0.15s cubic-bezier(0.4, 0, 0.2, 1)";
+                        viewBtn.style.boxShadow = "0 1px 2px rgba(0,0,0,0.1)";
+                        viewBtn.title = "View";
+                        viewBtn.innerHTML =
+                          '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>';
+                        viewBtn.onmouseover = () => {
+                          viewBtn.style.backgroundColor = "#2e7d32";
+                          viewBtn.style.color = "#fff";
+                          viewBtn.style.boxShadow =
+                            "0 2px 6px rgba(46, 125, 50, 0.3)";
+                          viewBtn.style.transform = "translateY(-1px)";
+                        };
+                        viewBtn.onmouseout = () => {
+                          viewBtn.style.backgroundColor = "#e8f5e8";
+                          viewBtn.style.color = "#2e7d32";
+                          viewBtn.style.boxShadow = "0 1px 2px rgba(0,0,0,0.1)";
+                          viewBtn.style.transform = "translateY(0)";
+                        };
+
+                        viewBtn.onclick = () => {
+                          const project = instance.getSourceDataAtRow(row);
+                          if (project?.pn_number) {
+                            setSelectedPnNumberForViewProjects(
+                              project.pn_number
+                            );
+                            setOpenViewProjectsModal(true);
+                          }
+                        };
+
+                        wrapper.appendChild(viewBtn);
+                        td.appendChild(wrapper);
+                        return td;
+                      },
+                    },
                     {
                       data: "project_number",
                       type: "text",
@@ -675,6 +1034,16 @@ export default function EngineerDashboard() {
           )}
         </Box>
       </Modal>
+
+      {/* View Projects Modal */}
+      <ViewProjectsModal
+        open={openViewProjectsModal}
+        onClose={() => {
+          setOpenViewProjectsModal(false);
+          setSelectedPnNumberForViewProjects(null);
+        }}
+        pn_number={selectedPnNumberForViewProjects}
+      />
     </div>
   );
 }

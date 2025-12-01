@@ -21,7 +21,7 @@ import { Modal, Box, Typography, IconButton } from "@mui/material";
 import { Close, Visibility } from "@mui/icons-material";
 import { HotTable } from "@handsontable/react";
 import Handsontable from "../../handsontable.config";
-import Echo from "../../echo";
+// import Echo from "../../echo";
 
 const dateRenderer = (instance, td, row, col, prop, value) => {
   td.innerText = formatDate(value);
@@ -282,17 +282,17 @@ export default function EngineerDashboard4K() {
     fetchDashboardData();
   }, [fetchDashboardData]);
 
-  useEffect(() => {
-    const channel = Echo.channel("engineer.dashboard.updated");
-    channel.listen(".dashboard.updated", (e) => {
-      console.log("Dashboard updated event received:", e);
-      fetchDashboardData();
-    });
+  // useEffect(() => {
+  //   const channel = Echo.channel("engineer.dashboard.updated");
+  //   channel.listen(".dashboard.updated", (e) => {
+  //     console.log("Dashboard updated event received:", e);
+  //     fetchDashboardData();
+  //   });
 
-    return () => {
-      channel.stopListening(".dashboard.updated");
-    };
-  }, [fetchDashboardData]);
+  //   return () => {
+  //     channel.stopListening(".dashboard.updated");
+  //   };
+  // }, [fetchDashboardData]);
 
   useEffect(() => {
     if (stats && currentSlide === 0) renderCharts(stats);

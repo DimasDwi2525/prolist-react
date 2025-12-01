@@ -64,6 +64,7 @@ import StatusMaterialRequestTable from "../pages/status-material-request/StatusM
 import TypePackingListTable from "../pages/type-packing-list/TypePackingListTable";
 import ExpeditionTable from "../pages/expedition/ExpeditionTable";
 import DestinationTable from "../pages/destination/DestinationTable";
+import InboxPage from "../pages/inbox/InboxPage";
 
 function AppRoutes() {
   return (
@@ -1155,6 +1156,16 @@ function AppRoutes() {
             >
               <MainLayout>
                 <DeliveryOrderTable />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/inbox"
+          element={
+            <ProtectedRoute>
+              <MainLayout>
+                <InboxPage />
               </MainLayout>
             </ProtectedRoute>
           }

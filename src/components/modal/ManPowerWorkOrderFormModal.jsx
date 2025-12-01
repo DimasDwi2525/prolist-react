@@ -79,9 +79,6 @@ export default function ManPowerWorkOrderFormModal({
         setUsers(resUsers.data.data || []);
         setRoles(resRoles.data.data || []);
         setPurposes(resPurposes.data.data || []);
-
-        console.log("Fetched users:", resUsers.data.data);
-        console.log("Fetched roles:", resRoles.data.data);
       } catch (err) {
         console.error("Failed to fetch users/roles", err);
       }
@@ -744,7 +741,9 @@ export default function ManPowerWorkOrderFormModal({
                   fullWidth
                   disabled={
                     !workOrder ||
-                    !["waiting_client", "approved"].includes(workOrder.status)
+                    !["waiting client approval", "approved"].includes(
+                      workOrder.status
+                    )
                   }
                 />
 

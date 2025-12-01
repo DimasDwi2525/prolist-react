@@ -1,40 +1,20 @@
-# TODO: Make UserTable, PackingListPage, and OutstandingProjectTable read-only with handsontableRenderers.js
+# Online Users Feature Implementation
 
-## UserTable.jsx
+## Completed Tasks
 
-- Remove inline editing (remove afterChange callback).
-- Remove add (+) button or disable it.
-- Remove or disable edit and delete action buttons in the Actions column.
-- Replace existing custom renderers for Role and Department columns with imported handsontableRenderers.js renderers like textRenderer.
-- Set all columns to readOnly, including the Actions column (remove button functions).
-- Remove or disable modal form for creating/editing users.
+- [x] Add state for onlineUsers and isOnlineUsersOpen in MainLayout.jsx
+- [x] Subscribe to 'online-users' presence channel using window.Echo.join()
+- [x] Implement .here(), .joining(), and .leaving() callbacks to update onlineUsers state
+- [x] Add cleanup for onlineUsersChannel in useEffect return
+- [x] Add UI component for online users display (only for admin users)
+- [x] Style the component as a modern drop-up with user list, avatars, and online indicators
+- [x] Position the component in bottom right corner with fixed positioning
+- [x] Fix presence channel initialization to run independently of projects loading
+- [x] Fix role display by accessing role as string instead of role.name
+- [x] Remove debug console logs
 
-## PackingListPage.jsx
+## Followup Steps
 
-- Remove Edit and Delete buttons in the Actions column or remove the Actions column entirely.
-- Use handsontableRenderers.js renderers for columns:
-  - textRenderer for text columns,
-  - dateRenderer for date columns.
-- Set all columns to readOnly.
-- Remove or disable modal for creating/editing packing lists.
-- Remove Add Packing List button.
-
-## OutstandingProjectTable.jsx
-
-- Keep the "PIC" column photo renderer but modify it to include the Upload Photo button below the photo inside the same cell.
-- Remove the separate "Action" column (the one with the Upload button).
-- Ensure the Upload Photo button calls the same upload logic as before.
-- Keep merges and cell styling intact.
-- Make the table read-only (remove editable callbacks if any).
-- Remove search input box (optional, if you want fully read-only display).
-
-## Common
-
-- Import needed renderers from src/utils/handsontableRenderers.js in all 3 files.
-- Use these renderers consistently for text, date, and other data in all tables.
-
-## Testing
-
-- Verify all tables render data correctly with handsontableRenderers.js renderers.
-- Verify no inline editing or modal form for create/edit is possible.
-- Verify Upload Photo button is shown below photo in OutstandingProjectTable.jsx and works as expected.
+- [ ] Test the real-time updates by simulating user joins/leaves (assuming backend is set up)
+- [ ] Ensure the component is styled appropriately and doesn't interfere with other UI elements
+- [ ] Verify that only users with name 'admin' can see the component

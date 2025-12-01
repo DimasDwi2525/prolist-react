@@ -282,7 +282,12 @@ export default function ProjectTable() {
         renderer: dateRenderer,
         readOnly: true,
       },
-      { data: "po_number", title: "PO Number", readOnly: true },
+      {
+        data: "po_number",
+        title: "PO Number",
+        readOnly: true,
+        renderer: textRenderer,
+      },
       {
         data: "po_value",
         title: "PO Value",
@@ -295,15 +300,36 @@ export default function ProjectTable() {
         renderer: dateRenderer,
         readOnly: true,
       },
-      { data: "sales_weeks", title: "Sales Weeks", readOnly: true },
-      { data: "mandays_engineer", title: "Mandays Engineer", readOnly: true },
+      {
+        data: "sales_weeks",
+        title: "Sales Weeks",
+        readOnly: true,
+        renderer: textRenderer,
+      },
+      {
+        data: "mandays_engineer",
+        title: "Mandays Engineer",
+        readOnly: true,
+        renderer: textRenderer,
+      },
       {
         data: "mandays_technician",
         title: "Mandays Technician",
         readOnly: true,
+        renderer: textRenderer,
       },
-      { data: "material_status", title: "Material Status", readOnly: true },
-      { data: "jumlah_invoice", title: "Jumlah Invoice", readOnly: true },
+      {
+        data: "material_status",
+        title: "Material Status",
+        readOnly: true,
+        renderer: textRenderer,
+      },
+      {
+        data: "jumlah_invoice",
+        title: "Jumlah Invoice",
+        readOnly: true,
+        renderer: textRenderer,
+      },
       {
         data: "project_progress",
         title: "Progress (%)",
@@ -316,7 +342,12 @@ export default function ProjectTable() {
         renderer: booleanRenderer,
         readOnly: true,
       },
-      { data: "parent_pn_number", title: "Parent PN", readOnly: true },
+      {
+        data: "parent_pn_number",
+        title: "Parent PN",
+        readOnly: true,
+        renderer: textRenderer,
+      },
       {
         data: "status_project",
         title: "Status",
@@ -442,15 +473,19 @@ export default function ProjectTable() {
 
       const projectsData = resProjects.data?.data
         ? resProjects.data.data.map((p) => {
+            // Find parent project for parent_pn_number display
+            const parentProject = resProjects.data.data.find(
+              (parent) => parent.pn_number === p.parent_pn_number
+            );
+
             return {
               pn_number: p.pn_number,
               ...p,
               client_name: getClientName(p),
               no_quotation: p.quotation?.no_quotation || "-",
               categories_name: p.category?.name || "-",
-              status_project: p.status_project || {
-                id: Number(p.status_project_id),
-              },
+              status_project: p.status_project?.name || "-",
+              parent_pn_number: parentProject?.project_number || "-",
             };
           })
         : [];

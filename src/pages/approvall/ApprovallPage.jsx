@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Card,
@@ -24,8 +24,8 @@ import ViewPhcModal from "../../components/modal/ViewPhcModal";
 import ViewWorkOrderModal from "../../components/modal/ViewWorkOrderModal";
 import ViewLogModal from "../../components/modal/ViewLogModal";
 import VisibilityIcon from "@mui/icons-material/Visibility";
-import Echo from "../../echo";
-import toast from "react-hot-toast";
+// import Echo from "../../echo";
+// import toast from "react-hot-toast";
 
 export default function ApprovalPage() {
   const [openModal, setOpenModal] = useState(false);
@@ -52,7 +52,7 @@ export default function ApprovalPage() {
   const [selectedLogId, setSelectedLogId] = useState(null);
 
   // Ref untuk tracking approval IDs yang sudah ditampilkan notifikasinya
-  const shownApprovalIdsRef = useRef(new Set());
+  // const shownApprovalIdsRef = useRef(new Set());
 
   const fetchApprovals = async () => {
     setLoading(true);
@@ -94,43 +94,43 @@ export default function ApprovalPage() {
     // Setup Echo listener untuk real-time updates dari Laravel Broadcasting
     console.log("🔌 Setting up Echo listener for approval.page.updated");
 
-    const approvalChannel = Echo.channel("approval.page.updated")
-      .listen("approval.page.updated", (event) => {
-        console.log("🔥 Approval page updated event received:", event);
+    // const approvalChannel = Echo.channel("approval.page.updated")
+    //   .listen("approval.page.updated", (event) => {
+    //     console.log("🔥 Approval page updated event received:", event);
 
-        // Cek apakah approval ini sudah pernah ditampilkan notifikasinya
-        const approvalKey = `${event.approval_type}-${event.approval_id}`;
+    //     // Cek apakah approval ini sudah pernah ditampilkan notifikasinya
+    //     const approvalKey = `${event.approval_type}-${event.approval_id}`;
 
-        if (!shownApprovalIdsRef.current.has(approvalKey)) {
-          // Tambahkan ke set agar tidak muncul notifikasi duplikat
-          shownApprovalIdsRef.current.add(approvalKey);
+    //     if (!shownApprovalIdsRef.current.has(approvalKey)) {
+    //       // Tambahkan ke set agar tidak muncul notifikasi duplikat
+    //       shownApprovalIdsRef.current.add(approvalKey);
 
-          // Refresh data approvals
-          fetchApprovals();
+    //       // Refresh data approvals
+    //       fetchApprovals();
 
-          // Tampilkan toast notification
-          const statusText =
-            event.status === "approved" ? "disetujui" : "ditolak";
-          toast.success(
-            event.message ||
-              `Approval untuk ${event.approval_type} telah ${statusText}`,
-            { duration: 5000 }
-          );
+    //       // Tampilkan toast notification
+    //       const statusText =
+    //         event.status === "approved" ? "disetujui" : "ditolak";
+    //       toast.success(
+    //         event.message ||
+    //           `Approval untuk ${event.approval_type} telah ${statusText}`,
+    //         { duration: 5000 }
+    //       );
 
-          console.log("✅ Approval data refreshed and notification shown");
-        } else {
-          console.log("ℹ️ Approval notification already shown, skipping");
-        }
-      })
-      .error((err) => {
-        console.error("❌ Echo channel error for approval.page.updated:", err);
-      });
+    //       console.log("✅ Approval data refreshed and notification shown");
+    //     } else {
+    //       console.log("ℹ️ Approval notification already shown, skipping");
+    //     }
+    //   })
+    //   .error((err) => {
+    //     console.error("❌ Echo channel error for approval.page.updated:", err);
+    //   });
 
     // Cleanup function
     return () => {
       console.log("🔌 Cleaning up Echo listener for approval.page.updated");
       window.removeEventListener("approvalSuccess", handleApprovalSuccess);
-      approvalChannel.stopListening("approval.page.updated");
+      // approvalChannel.stopListening("approval.page.updated");
     };
   }, []);
 

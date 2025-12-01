@@ -7,11 +7,50 @@ import { getUser, getToken } from "../utils/storage";
 import api from "../api/api";
 import Echo from "laravel-echo";
 import Pusher from "pusher-js";
+import notificationSound from "../../public/notification/mixkit-bell-notification-933.wav";
+
+const roleMapping = {
+  super_admin: "admin",
+  marketing_director: "admin",
+  engineering_director: "admin",
+  "supervisor marketing": "marketing",
+  manager_marketing: "marketing",
+  sales_supervisor: "marketing",
+  marketing_admin: "marketing",
+  marketing_estimator: "marketing",
+  engineer: "manPower",
+  "project controller": "engineer",
+  "project manager": "engineer",
+  warehouse: "suc",
+  engineering_admin: "engineer",
+  engineer_supervisor: "manPower",
+  drafter: "manPower",
+  site_engineer: "manPower",
+  electrician_supervisor: "manPower",
+  electrician: "manPower",
+
+  acc_fin_manager: "finance",
+  acc_fin_supervisor: "finance",
+  finance_administration: "finance",
+};
 
 export default function MainLayout({ children }) {
   const user = getUser();
   const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 768);
   const fullScreenHandle = useFullScreenHandle();
+
+  // Function to play notification sound
+  const playNotificationSound = () => {
+    try {
+      const audio = new Audio(notificationSound);
+      audio.volume = 0.5; // Set volume to 50%
+      audio.play().catch((error) => {
+        console.error("Error playing notification sound:", error);
+      });
+    } catch (error) {
+      console.error("Error playing notification sound:", error);
+    }
+  };
 
   const [notifications, setNotifications] = useState([]);
   const [shownLogIds, setShownLogIds] = useState(new Set());
@@ -36,6 +75,121 @@ export default function MainLayout({ children }) {
 
   const [projects, setProjects] = useState([]);
 
+  // Online users state
+  const [onlineUsers, setOnlineUsers] = useState([]);
+  const [isOnlineUsersOpen, setIsOnlineUsersOpen] = useState(false);
+
+  // Sidebar counters
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [pendingApprovals, setPendingApprovals] = useState(0);
+  const [pendingRequestInvoices, setPendingRequestInvoices] = useState(0);
+
+  // Unlock audio playback on user interaction
+  useEffect(() => {
+    const unlockAudio = () => {
+      const audio = new Audio(notificationSound);
+      audio
+        .play()
+        .then(() => {
+          audio.pause();
+          audio.currentTime = 0;
+          window.removeEventListener("click", unlockAudio);
+        })
+        .catch((err) => console.log("Audio unlock blocked:", err));
+    };
+
+    window.addEventListener("click", unlockAudio);
+
+    return () => window.removeEventListener("click", unlockAudio);
+  }, []);
+
+  // Fetch initial sidebar counters
+  useEffect(() => {
+    if (!user) return;
+
+    const token = getToken();
+    if (!token) return;
+
+    // Fetch unread notifications count
+    api
+      .get("/notifications/all", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+      .then((res) => {
+        const notifications = res.data?.notifications || [];
+        const unreadCount = notifications.filter((n) => !n.read_at).length;
+        setUnreadNotifications(unreadCount);
+      })
+      .catch((err) => {
+        console.error("Failed to fetch unread notifications count:", err);
+        setUnreadNotifications(0);
+      });
+
+    // Fetch pending approvals count
+    api
+      .get("/approvals", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+      .then((res) => {
+        const approvals = Array.isArray(res.data)
+          ? res.data
+          : res.data?.data || [];
+        const pendingCount = approvals.filter(
+          (a) => a.status === "pending"
+        ).length;
+        setPendingApprovals(pendingCount);
+      })
+      .catch((err) => {
+        console.error("Failed to fetch pending approvals count:", err);
+        setPendingApprovals(0);
+      });
+
+    // Fetch pending request invoices count (only for finance and engineer roles)
+    const mappedRole = roleMapping[user.role?.name] || user.role?.name;
+    if (mappedRole === "finance" || mappedRole === "engineer") {
+      api
+        .get("/request-invoices-list", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+        .then((res) => {
+          const data = res.data?.data || [];
+          const pendingCount = data.filter(
+            (item) => item.status === "pending"
+          ).length;
+          setPendingRequestInvoices(pendingCount);
+        })
+        .catch((err) => {
+          console.error("Failed to fetch pending request invoices count:", err);
+          setPendingRequestInvoices(0);
+        });
+    }
+  }, [user]);
+
+  // Real-time updates for sidebar counters
+  useEffect(() => {
+    if (!window.Echo) return;
+
+    const sidebarCounterChannel = window.Echo.channel("sidebar.counter.updated")
+      .listen(".sidebar.counter.updated", (e) => {
+        setUnreadNotifications(e.notificationUnread || 0);
+        setPendingApprovals(e.approvalPending || 0);
+        setPendingRequestInvoices(e.requestInvoice || 0);
+      })
+      .error((err) => {
+        console.error("❌ Echo channel error for sidebar counter:", err);
+      });
+
+    return () => {
+      sidebarCounterChannel.stopListening(".sidebar.counter.updated");
+    };
+  }, []);
+
   useEffect(() => {
     if (!user) return;
 
@@ -50,7 +204,6 @@ export default function MainLayout({ children }) {
         },
       })
       .then((res) => {
-        console.log("📥 Notifikasi lama:", res.data);
         setNotifications(res.data.notifications || []);
       })
       .catch((err) => {
@@ -65,7 +218,6 @@ export default function MainLayout({ children }) {
         },
       })
       .then((res) => {
-        console.log("📥 Projects fetched:", res.data);
         setProjects(res.data?.data || []);
       })
       .catch((err) => {
@@ -73,46 +225,111 @@ export default function MainLayout({ children }) {
       });
   }, []); // hanya sekali untuk notifikasi dan projects
 
+  // Online users presence channel - separate useEffect to run independently
+  useEffect(() => {
+    if (!user || !getToken()) {
+      // Clear online users when user logs out
+      setOnlineUsers([]);
+      return;
+    }
+
+    const token = getToken();
+
+    // Initialize Echo if not already done
+    if (!window.Echo) {
+      window.Pusher = Pusher;
+      window.Echo = new Echo({
+        broadcaster: "reverb",
+        key: "ur5wyexnhstdyw0qigqc",
+        wsHost: "127.0.0.1",
+        wsPort: 8080,
+        enabledTransports: ["ws", "wss"],
+        forceTLS: false,
+        authEndpoint: "http://localhost:8000/api/broadcasting/auth",
+        auth: {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+          },
+        },
+      });
+
+      window.Echo.connector.pusher.connection.bind("connected", () => {});
+
+      window.Echo.connector.pusher.connection.bind("error", (err) => {
+        console.error("❌ Reverb connection error:", err);
+      });
+    }
+
+    // Online users presence channel
+    window.Echo.join("online-users")
+      .here((users) => {
+        setOnlineUsers(users);
+      })
+      .joining((user) => {
+        setOnlineUsers((prev) => {
+          // Check if user already exists to prevent duplicates
+          const exists = prev.some((u) => u.id === user.id);
+          return exists ? prev : [...prev, user];
+        });
+      })
+      .leaving((user) => {
+        setOnlineUsers((prev) => prev.filter((u) => u.id !== user.id));
+      })
+      .error((err) => {
+        console.error("❌ Echo channel error for online users:", err);
+      });
+
+    return () => {
+      // Presence channel cleanup is handled automatically by Echo
+    };
+  }, [user]); // Only depend on user, not projects
+
   useEffect(() => {
     // Listen realtime notifikasi baru
     if (!user || !getToken() || projects.length === 0) return;
 
     const token = getToken();
 
-    window.Pusher = Pusher;
-    window.Echo = new Echo({
-      broadcaster: "pusher",
-      key: import.meta.env.VITE_PUSHER_APP_KEY,
-      cluster: import.meta.env.VITE_PUSHER_APP_CLUSTER,
-      forceTLS: true,
-      authEndpoint: "http://127.0.0.1:8000/api/broadcasting/auth",
-      auth: {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/json",
+    // Use existing Echo instance
+    if (!window.Echo) {
+      window.Pusher = Pusher;
+      window.Echo = new Echo({
+        broadcaster: "reverb",
+        key: "ur5wyexnhstdyw0qigqc",
+        wsHost: "127.0.0.1",
+        wsPort: 8080,
+        enabledTransports: ["ws", "wss"],
+        forceTLS: false,
+        authEndpoint: "http://localhost:8000/api/broadcasting/auth",
+        auth: {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+          },
         },
-      },
-    });
+      });
 
-    console.log("✅ Echo initialized for user:", user.id);
+      window.Echo.connector.pusher.connection.bind("connected", () => {});
 
-    const phcChannel = window.Echo.channel("phc.created")
-      .listen(".phc.created", (e) => {
-        console.log("🔥 PHC baru dibuat:", e);
-        console.log("Current user ID:", user.id, "Type:", typeof user.id);
-        console.log(
-          "User IDs in event:",
-          e.user_ids,
-          "Types:",
-          e.user_ids.map((id) => typeof id)
-        );
+      window.Echo.connector.pusher.connection.bind("error", (err) => {
+        console.error("❌ Reverb connection error:", err);
+      });
+    }
+
+    const phcChannel = window.Echo.channel("phc_created")
+      .listen(".phc_created", (e) => {
         if (
           (e.user_ids.includes(String(user.id)) ||
             e.user_ids.includes(Number(user.id))) &&
-          !shownPhcIds.has(e.id)
+          !shownPhcIds.has(e.phc_id)
         ) {
-          setShownPhcIds((prev) => new Set(prev).add(e.id));
-          setNotifications((prev) => [{ ...e, read_at: null }, ...prev]);
+          setShownPhcIds((prev) => new Set(prev).add(e.phc_id));
+          setNotifications((prev) => [
+            { ...e, id: e.phc_id, read_at: null },
+            ...prev,
+          ]);
+          playNotificationSound();
           toast.success(e.message, { duration: 5000 });
         } else {
           console.log(
@@ -124,7 +341,6 @@ export default function MainLayout({ children }) {
 
     const requestInvoiceChannel = window.Echo.channel("request.invoice.created")
       .listen(".request.invoice.created", (e) => {
-        console.log("🔥 Request Invoice baru dibuat:", e);
         if (e.user_ids.includes(user.id) && !shownRequestInvoiceIds.has(e.id)) {
           setShownRequestInvoiceIds((prev) => new Set(prev).add(e.id));
           const notification = {
@@ -134,6 +350,7 @@ export default function MainLayout({ children }) {
             read_at: null,
           };
           setNotifications((prev) => [notification, ...prev]);
+          playNotificationSound();
           toast.success(e.message, { duration: 5000 });
         }
       })
@@ -142,7 +359,6 @@ export default function MainLayout({ children }) {
     const notifChannel = window.Echo.channel(
       `App.Models.User.${user.id}`
     ).notification((notif) => {
-      console.log("🔔 Notifikasi baru via notification:", notif);
       if (!shownNotifIds.has(notif.id)) {
         setShownNotifIds((prev) => new Set(prev).add(notif.id));
         // Use the actual notification data structure from database
@@ -155,6 +371,7 @@ export default function MainLayout({ children }) {
           updated_at: notif.updated_at,
         };
         setNotifications((prev) => [notificationData, ...prev]);
+        playNotificationSound();
         toast.success(notif.data?.message || "Notifikasi baru!", {
           duration: 5000,
         });
@@ -164,11 +381,7 @@ export default function MainLayout({ children }) {
     // Listen to log events on public channel
     const logCreatedChannel = window.Echo.channel("log.created")
       .listen(".log.created", (e) => {
-        console.log("🔥 Log created event received:", e);
-        console.log("Current user ID:", user.id);
-        console.log("User IDs in event:", e.user_ids);
         if (e.user_ids.includes(user.id) && !shownLogIds.has(e.log_id)) {
-          console.log("✅ Showing notification for log:", e.log_id);
           setShownLogIds((prev) => new Set(prev).add(e.log_id));
           setNotifications((prev) => [
             {
@@ -180,6 +393,7 @@ export default function MainLayout({ children }) {
             },
             ...prev,
           ]);
+          playNotificationSound();
           toast.success(e.message, { duration: 5000 });
         } else {
           console.log(
@@ -192,11 +406,8 @@ export default function MainLayout({ children }) {
     // Listen to log approval updates on public channel
     const logApprovalChannel = window.Echo.channel("log.approval.updated")
       .listen(".log.approval.updated", (e) => {
-        console.log("🔥 Log approval updated:", e);
-
         // Skip notifying the approver
         if (e.approver_id && e.approver_id === user.id) {
-          console.log("Approver user detected, skipping notification");
           return;
         }
 
@@ -212,6 +423,7 @@ export default function MainLayout({ children }) {
             },
             ...prev,
           ]);
+          playNotificationSound();
           toast.success(e.message || "Log approval updated", {
             duration: 5000,
           });
@@ -223,7 +435,6 @@ export default function MainLayout({ children }) {
 
     const workOrderCreatedChannel = window.Echo.channel("workorder.created")
       .listen(".workorder.created", (e) => {
-        console.log("🔥 Work Order created event received:", e);
         if (
           e.user_ids.includes(user.id) &&
           !shownWorkOrderCreatedIds.has(e.work_order_id)
@@ -239,6 +450,7 @@ export default function MainLayout({ children }) {
             read_at: null,
           };
           setNotifications((prev) => [notification, ...prev]);
+          playNotificationSound();
           toast.success(e.message, { duration: 5000 });
         }
       })
@@ -248,7 +460,6 @@ export default function MainLayout({ children }) {
 
     const workOrderUpdatedChannel = window.Echo.channel("workorder.updated")
       .listen(".workorder.updated", (e) => {
-        console.log("🔥 Work Order updated event received:", e);
         if (
           e.user_ids.includes(user.id) &&
           !shownWorkOrderUpdatedIds.has(e.work_order_id)
@@ -276,13 +487,8 @@ export default function MainLayout({ children }) {
       "phc.approval.updated"
     )
       .listen(".phc.approval.updated", (e) => {
-        console.log("🔥 PHC approval updated event received:", e);
-
         // Skip notifying the approver
         if (e.approver_id && e.approver_id === user.id) {
-          console.log(
-            "Approver user detected, skipping PHC approval notification"
-          );
           return;
         }
 
@@ -297,6 +503,7 @@ export default function MainLayout({ children }) {
             read_at: null,
           };
           setNotifications((prev) => [notification, ...prev]);
+          playNotificationSound();
           toast.success(e.message || "PHC approval updated", {
             duration: 5000,
           });
@@ -311,13 +518,8 @@ export default function MainLayout({ children }) {
       "work_order.approval.updated"
     )
       .listen(".work_order.approval.updated", (e) => {
-        console.log("🔥 Work Order approval updated event received:", e);
-
         // Skip notifying the approver
         if (e.approver_id && e.approver_id === user.id) {
-          console.log(
-            "Approver user detected, skipping Work Order approval notification"
-          );
           return;
         }
 
@@ -334,6 +536,7 @@ export default function MainLayout({ children }) {
             read_at: null,
           };
           setNotifications((prev) => [notification, ...prev]);
+          playNotificationSound();
           toast.success(e.message || "Work Order approval updated", {
             duration: 5000,
           });
@@ -347,7 +550,7 @@ export default function MainLayout({ children }) {
       );
 
     return () => {
-      phcChannel.stopListening(".phc.created");
+      phcChannel.stopListening(".phc_created");
       requestInvoiceChannel.stopListening(".request.invoice.created");
       notifChannel.stopListening("notification");
       logCreatedChannel.stopListening(".log.created");
@@ -359,6 +562,8 @@ export default function MainLayout({ children }) {
       workOrderApprovalUpdatedChannel.stopListening(
         ".work_order.approval.updated"
       );
+
+      // Presence channel cleanup is handled automatically
     };
   }, [user, projects]); // run when user or projects change
 
@@ -399,7 +604,13 @@ export default function MainLayout({ children }) {
     <FullScreen handle={fullScreenHandle}>
       <div className="h-full min-h-screen flex flex-col bg-gray-100 font-sans">
         <div className="flex flex-1 overflow-hidden">
-          <Sidebar role={user.role?.name} sidebarOpen={sidebarOpen} />
+          <Sidebar
+            role={user.role?.name}
+            sidebarOpen={sidebarOpen}
+            unreadNotifications={unreadNotifications}
+            pendingApprovals={pendingApprovals}
+            pendingRequestInvoices={pendingRequestInvoices}
+          />
 
           {/* Overlay untuk mobile */}
           {sidebarOpen === false && window.innerWidth < 768 && (
@@ -421,6 +632,7 @@ export default function MainLayout({ children }) {
                 fullScreenHandle={fullScreenHandle}
                 notifications={notifications}
                 onReadNotification={handleReadNotification}
+                onLogout={() => setOnlineUsers([])}
               />
             )}
 
@@ -430,6 +642,63 @@ export default function MainLayout({ children }) {
           </div>
         </div>
       </div>
+
+      {/* Online Users Component - Only for admin users */}
+      {user.name === "admin" && (
+        <div className="fixed bottom-4 right-4 z-50">
+          <div className="relative">
+            <button
+              onClick={() => setIsOnlineUsersOpen(!isOnlineUsersOpen)}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-full shadow-lg flex items-center space-x-2 transition-colors"
+            >
+              <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+              <span className="text-sm font-medium">
+                Online ({onlineUsers.length})
+              </span>
+            </button>
+
+            {isOnlineUsersOpen && (
+              <div className="absolute bottom-full right-0 mb-2 bg-white border border-gray-200 rounded-lg shadow-xl w-64 max-h-80 overflow-y-auto">
+                <div className="p-3 border-b border-gray-200">
+                  <h3 className="text-sm font-semibold text-gray-900">
+                    Online Users ({onlineUsers.length})
+                  </h3>
+                </div>
+                <div className="p-2">
+                  {onlineUsers.length === 0 ? (
+                    <p className="text-sm text-gray-500 text-center py-4">
+                      No users online
+                    </p>
+                  ) : (
+                    onlineUsers.map((onlineUser) => (
+                      <div
+                        key={onlineUser.id}
+                        className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded-md"
+                      >
+                        <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                          <span className="text-white text-sm font-medium">
+                            {onlineUser.name.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate">
+                            {onlineUser.name}
+                          </p>
+                          <p className="text-xs text-gray-500 truncate">
+                            {onlineUser.role || "No role"}
+                          </p>
+                        </div>
+                        <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       <Toaster />
     </FullScreen>
   );

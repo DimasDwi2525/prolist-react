@@ -17,6 +17,7 @@ import {
   dateRenderer,
   statusRenderer,
 } from "../../utils/handsontableRenderers";
+import ViewProjectsModalManPower from "../../components/modal/ViewProjectsModalManPower";
 
 const DashboardCard = ({ title, value, color, icon, onViewClick }) => {
   const displayValue = value === 0 ? "No data" : value || "No data available";
@@ -64,6 +65,8 @@ export default function ManPowerDashboard() {
   const [modalData, setModalData] = useState([]);
   const [modalColumns, setModalColumns] = useState([]);
   const [modalTitle, setModalTitle] = useState("");
+  const [openViewProjectsModal, setOpenViewProjectsModal] = useState(false);
+  const [selectedPnNumber, setSelectedPnNumber] = useState(null);
 
   useEffect(() => {
     api
@@ -95,9 +98,61 @@ export default function ManPowerDashboard() {
   };
 
   const handleViewClick = (type) => {
+    const actionsColumn = {
+      data: "actions",
+      title: "Actions",
+      readOnly: true,
+      width: 90,
+      renderer: (instance, td, row) => {
+        td.innerHTML = "";
+
+        // 👁️ View button
+        const viewBtn = document.createElement("button");
+        viewBtn.style.cursor = "pointer";
+        viewBtn.style.border = "none";
+        viewBtn.style.background = "#e8f5e8";
+        viewBtn.style.padding = "8px";
+        viewBtn.style.borderRadius = "4px";
+        viewBtn.style.color = "#2e7d32";
+        viewBtn.style.display = "flex";
+        viewBtn.style.alignItems = "center";
+        viewBtn.style.justifyContent = "center";
+        viewBtn.style.width = "40px";
+        viewBtn.style.transition = "all 0.15s cubic-bezier(0.4, 0, 0.2, 1)";
+        viewBtn.style.boxShadow = "0 1px 2px rgba(0,0,0,0.1)";
+        viewBtn.title = "View";
+        viewBtn.innerHTML =
+          '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>';
+        viewBtn.onmouseover = () => {
+          viewBtn.style.backgroundColor = "#2e7d32";
+          viewBtn.style.color = "#fff";
+          viewBtn.style.boxShadow = "0 2px 6px rgba(46, 125, 50, 0.3)";
+          viewBtn.style.transform = "translateY(-1px)";
+        };
+        viewBtn.onmouseout = () => {
+          viewBtn.style.backgroundColor = "#e8f5e8";
+          viewBtn.style.color = "#2e7d32";
+          viewBtn.style.boxShadow = "0 1px 2px rgba(0,0,0,0.1)";
+          viewBtn.style.transform = "translateY(0)";
+        };
+
+        viewBtn.onclick = () => {
+          const project = instance.getSourceDataAtRow(row);
+          if (project?.pn_number) {
+            setSelectedPnNumber(project.pn_number);
+            setOpenViewProjectsModal(true);
+          }
+        };
+
+        td.appendChild(viewBtn);
+        return td;
+      },
+    };
+
     if (type === "overdue") {
       setModalData(stats.top5Overdue);
       setModalColumns([
+        actionsColumn,
         { data: "project_number", title: "Project Number" },
         { data: "project_name", title: "Project Name" },
         { data: "client_name", title: "Client Name" },
@@ -114,6 +169,7 @@ export default function ManPowerDashboard() {
     } else if (type === "dueThisMonth") {
       setModalData(stats.projectDueThisMonthList);
       setModalColumns([
+        actionsColumn,
         { data: "project_number", title: "Project Number" },
         { data: "project_name", title: "Project Name" },
         { data: "client_name", title: "Client Name" },
@@ -133,6 +189,7 @@ export default function ManPowerDashboard() {
     } else if (type === "onTrack") {
       setModalData(stats.projectOnTrackList);
       setModalColumns([
+        actionsColumn,
         { data: "project_number", title: "Project Number" },
         { data: "project_name", title: "Project Name" },
         { data: "client_name", title: "Client Name" },
@@ -157,6 +214,7 @@ export default function ManPowerDashboard() {
         )
       );
       setModalColumns([
+        actionsColumn,
         { data: "project_number", title: "Project Number" },
         { data: "project_name", title: "Project Name" },
         { data: "client_name", title: "Client Name" },
@@ -234,6 +292,7 @@ export default function ManPowerDashboard() {
               <HotTable
                 data={stats.top5Overdue}
                 colHeaders={[
+                  "Actions",
                   "Project Number",
                   "Project Name",
                   "Client Name",
@@ -243,6 +302,58 @@ export default function ManPowerDashboard() {
                   "Status",
                 ]}
                 columns={[
+                  {
+                    data: "actions",
+                    title: "Actions",
+                    readOnly: true,
+                    width: 90,
+                    renderer: (instance, td, row) => {
+                      td.innerHTML = "";
+
+                      // 👁️ View button
+                      const viewBtn = document.createElement("button");
+                      viewBtn.style.cursor = "pointer";
+                      viewBtn.style.border = "none";
+                      viewBtn.style.background = "#e8f5e8";
+                      viewBtn.style.padding = "8px";
+                      viewBtn.style.borderRadius = "4px";
+                      viewBtn.style.color = "#2e7d32";
+                      viewBtn.style.display = "flex";
+                      viewBtn.style.alignItems = "center";
+                      viewBtn.style.justifyContent = "center";
+                      viewBtn.style.width = "40px";
+                      viewBtn.style.transition =
+                        "all 0.15s cubic-bezier(0.4, 0, 0.2, 1)";
+                      viewBtn.style.boxShadow = "0 1px 2px rgba(0,0,0,0.1)";
+                      viewBtn.title = "View";
+                      viewBtn.innerHTML =
+                        '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>';
+                      viewBtn.onmouseover = () => {
+                        viewBtn.style.backgroundColor = "#2e7d32";
+                        viewBtn.style.color = "#fff";
+                        viewBtn.style.boxShadow =
+                          "0 2px 6px rgba(46, 125, 50, 0.3)";
+                        viewBtn.style.transform = "translateY(-1px)";
+                      };
+                      viewBtn.onmouseout = () => {
+                        viewBtn.style.backgroundColor = "#e8f5e8";
+                        viewBtn.style.color = "#2e7d32";
+                        viewBtn.style.boxShadow = "0 1px 2px rgba(0,0,0,0.1)";
+                        viewBtn.style.transform = "translateY(0)";
+                      };
+
+                      viewBtn.onclick = () => {
+                        const project = instance.getSourceDataAtRow(row);
+                        if (project?.pn_number) {
+                          setSelectedPnNumber(project.pn_number);
+                          setOpenViewProjectsModal(true);
+                        }
+                      };
+
+                      td.appendChild(viewBtn);
+                      return td;
+                    },
+                  },
                   { data: "project_number", type: "text", editor: false },
                   { data: "project_name", type: "text", editor: false },
                   { data: "client_name", type: "text", editor: false },
@@ -282,6 +393,7 @@ export default function ManPowerDashboard() {
                 <HotTable
                   data={stats.projectDueThisMonthList}
                   colHeaders={[
+                    "Actions",
                     "Project Number",
                     "Project Name",
                     "Client Name",
@@ -290,6 +402,58 @@ export default function ManPowerDashboard() {
                     "Status",
                   ]}
                   columns={[
+                    {
+                      data: "actions",
+                      title: "Actions",
+                      readOnly: true,
+                      width: 90,
+                      renderer: (instance, td, row) => {
+                        td.innerHTML = "";
+
+                        // 👁️ View button
+                        const viewBtn = document.createElement("button");
+                        viewBtn.style.cursor = "pointer";
+                        viewBtn.style.border = "none";
+                        viewBtn.style.background = "#e8f5e8";
+                        viewBtn.style.padding = "8px";
+                        viewBtn.style.borderRadius = "4px";
+                        viewBtn.style.color = "#2e7d32";
+                        viewBtn.style.display = "flex";
+                        viewBtn.style.alignItems = "center";
+                        viewBtn.style.justifyContent = "center";
+                        viewBtn.style.width = "40px";
+                        viewBtn.style.transition =
+                          "all 0.15s cubic-bezier(0.4, 0, 0.2, 1)";
+                        viewBtn.style.boxShadow = "0 1px 2px rgba(0,0,0,0.1)";
+                        viewBtn.title = "View";
+                        viewBtn.innerHTML =
+                          '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>';
+                        viewBtn.onmouseover = () => {
+                          viewBtn.style.backgroundColor = "#2e7d32";
+                          viewBtn.style.color = "#fff";
+                          viewBtn.style.boxShadow =
+                            "0 2px 6px rgba(46, 125, 50, 0.3)";
+                          viewBtn.style.transform = "translateY(-1px)";
+                        };
+                        viewBtn.onmouseout = () => {
+                          viewBtn.style.backgroundColor = "#e8f5e8";
+                          viewBtn.style.color = "#2e7d32";
+                          viewBtn.style.boxShadow = "0 1px 2px rgba(0,0,0,0.1)";
+                          viewBtn.style.transform = "translateY(0)";
+                        };
+
+                        viewBtn.onclick = () => {
+                          const project = instance.getSourceDataAtRow(row);
+                          if (project?.pn_number) {
+                            setSelectedPnNumber(project.pn_number);
+                            setOpenViewProjectsModal(true);
+                          }
+                        };
+
+                        td.appendChild(viewBtn);
+                        return td;
+                      },
+                    },
                     { data: "project_number", type: "text", editor: false },
                     { data: "project_name", type: "text", editor: false },
                     { data: "client_name", type: "text", editor: false },
@@ -333,6 +497,7 @@ export default function ManPowerDashboard() {
                 <HotTable
                   data={stats.upcomingProjects}
                   colHeaders={[
+                    "Actions",
                     "Project Number",
                     "Project Name",
                     "Client Name",
@@ -340,6 +505,58 @@ export default function ManPowerDashboard() {
                     "Status",
                   ]}
                   columns={[
+                    {
+                      data: "actions",
+                      title: "Actions",
+                      readOnly: true,
+                      width: 90,
+                      renderer: (instance, td, row) => {
+                        td.innerHTML = "";
+
+                        // 👁️ View button
+                        const viewBtn = document.createElement("button");
+                        viewBtn.style.cursor = "pointer";
+                        viewBtn.style.border = "none";
+                        viewBtn.style.background = "#e8f5e8";
+                        viewBtn.style.padding = "8px";
+                        viewBtn.style.borderRadius = "4px";
+                        viewBtn.style.color = "#2e7d32";
+                        viewBtn.style.display = "flex";
+                        viewBtn.style.alignItems = "center";
+                        viewBtn.style.justifyContent = "center";
+                        viewBtn.style.width = "40px";
+                        viewBtn.style.transition =
+                          "all 0.15s cubic-bezier(0.4, 0, 0.2, 1)";
+                        viewBtn.style.boxShadow = "0 1px 2px rgba(0,0,0,0.1)";
+                        viewBtn.title = "View";
+                        viewBtn.innerHTML =
+                          '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>';
+                        viewBtn.onmouseover = () => {
+                          viewBtn.style.backgroundColor = "#2e7d32";
+                          viewBtn.style.color = "#fff";
+                          viewBtn.style.boxShadow =
+                            "0 2px 6px rgba(46, 125, 50, 0.3)";
+                          viewBtn.style.transform = "translateY(-1px)";
+                        };
+                        viewBtn.onmouseout = () => {
+                          viewBtn.style.backgroundColor = "#e8f5e8";
+                          viewBtn.style.color = "#2e7d32";
+                          viewBtn.style.boxShadow = "0 1px 2px rgba(0,0,0,0.1)";
+                          viewBtn.style.transform = "translateY(0)";
+                        };
+
+                        viewBtn.onclick = () => {
+                          const project = instance.getSourceDataAtRow(row);
+                          if (project?.pn_number) {
+                            setSelectedPnNumber(project.pn_number);
+                            setOpenViewProjectsModal(true);
+                          }
+                        };
+
+                        td.appendChild(viewBtn);
+                        return td;
+                      },
+                    },
                     { data: "project_number", type: "text", editor: false },
                     { data: "project_name", type: "text", editor: false },
                     { data: "client_name", type: "text", editor: false },
@@ -436,6 +653,18 @@ export default function ManPowerDashboard() {
           )}
         </Box>
       </Modal>
+
+      {/* View Projects Modal */}
+      {openViewProjectsModal && selectedPnNumber && (
+        <ViewProjectsModalManPower
+          open={openViewProjectsModal}
+          onClose={() => {
+            setOpenViewProjectsModal(false);
+            setSelectedPnNumber(null);
+          }}
+          pn_number={selectedPnNumber}
+        />
+      )}
     </div>
   );
 }

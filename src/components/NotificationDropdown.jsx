@@ -35,9 +35,7 @@ export default function NotificationDropdown({ notifications, onRead }) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  useEffect(() => {
-    console.log("🔔 Notifications props diterima:", notifications);
-  }, [notifications]);
+  useEffect(() => {}, [notifications]);
 
   const safeNotifications = Array.isArray(notifications) ? notifications : [];
 

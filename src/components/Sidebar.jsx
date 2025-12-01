@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import {
   FaTachometerAlt,
@@ -11,9 +11,9 @@ import {
   FaCheckCircle,
   FaPaypal,
   FaShippingFast,
+  FaInbox,
 } from "react-icons/fa";
 import Badge from "@mui/material/Badge";
-import api from "../api/api";
 
 const roleMapping = {
   super_admin: "admin",
@@ -230,11 +230,13 @@ const menuByRole = {
       ],
     },
     { name: "Projects", path: "/projects", icon: <FaTools /> },
+    { name: "Inbox", path: "/inbox", icon: <FaInbox /> },
     { name: "Approvall", path: "/approvall", icon: <FaCheckCircle /> },
     { name: "Activity Log", path: "/activity-logs", icon: <FaTasks /> },
   ],
   marketing: [
     { name: "Dashboard", path: "/marketing", icon: <FaTachometerAlt /> },
+    { name: "Inbox", path: "/inbox", icon: <FaInbox /> },
     {
       name: "Master Data",
       icon: <FaTools />,
@@ -270,6 +272,7 @@ const menuByRole = {
       path: "/engineer",
       icon: <FaTachometerAlt />,
     },
+    { name: "Inbox", path: "/inbox", icon: <FaInbox /> },
     {
       name: "Master Data",
       icon: <FaTools />,
@@ -342,6 +345,7 @@ const menuByRole = {
   ],
   suc: [
     { name: "Dashboard", path: "/suc", icon: <FaTachometerAlt /> },
+    { name: "Inbox", path: "/inbox", icon: <FaInbox /> },
     {
       name: "Data Master",
       icon: <FaTools />,
@@ -385,6 +389,7 @@ const menuByRole = {
       path: "/man-power",
       icon: <FaTachometerAlt />,
     },
+    { name: "Inbox", path: "/inbox", icon: <FaInbox /> },
     {
       name: "Work Order",
       path: "/man-power/work-order",
@@ -396,6 +401,7 @@ const menuByRole = {
 
   finance: [
     { name: "Dashboard", path: "/finance", icon: <FaTachometerAlt /> },
+    { name: "Inbox", path: "/inbox", icon: <FaInbox /> },
     {
       name: "Master Data",
       icon: <FaTools />,
@@ -438,34 +444,18 @@ const menuByRole = {
   ],
 };
 
-export default function Sidebar({ role, sidebarOpen }) {
+export default function Sidebar({
+  role,
+  sidebarOpen,
+  unreadNotifications,
+  pendingApprovals,
+  pendingRequestInvoices,
+}) {
   const [openSubmenu, setOpenSubmenu] = useState({});
-  const [pendingRequestInvoices, setPendingRequestInvoices] = useState(0);
 
   // Mapping role dari props
   const mappedRole = roleMapping[role] || role;
   const menu = menuByRole[mappedRole] || [];
-
-  // Fetch pending request invoices count
-  useEffect(() => {
-    const fetchPendingCount = async () => {
-      try {
-        const response = await api.get("/request-invoices-list");
-        const data = response.data?.data || [];
-        const pendingCount = data.filter(
-          (item) => item.status === "pending"
-        ).length;
-        setPendingRequestInvoices(pendingCount);
-      } catch (error) {
-        console.error("Failed to fetch pending request invoices count:", error);
-        setPendingRequestInvoices(0);
-      }
-    };
-
-    if (mappedRole === "finance" || mappedRole === "engineer") {
-      fetchPendingCount();
-    }
-  }, [mappedRole]);
 
   return (
     <div
@@ -522,6 +512,38 @@ export default function Sidebar({ role, sidebarOpen }) {
                         }}
                       />
                     )}
+                  {item.name === "Inbox" && unreadNotifications > 0 && (
+                    <Badge
+                      badgeContent={unreadNotifications}
+                      color="error"
+                      sx={{
+                        "& .MuiBadge-badge": {
+                          fontSize: "0.7rem",
+                          height: "16px",
+                          minWidth: "16px",
+                          backgroundColor: "#ff4444",
+                          color: "white",
+                        },
+                        ml: 1,
+                      }}
+                    />
+                  )}
+                  {item.name === "Approvall" && pendingApprovals > 0 && (
+                    <Badge
+                      badgeContent={pendingApprovals}
+                      color="error"
+                      sx={{
+                        "& .MuiBadge-badge": {
+                          fontSize: "0.7rem",
+                          height: "16px",
+                          minWidth: "16px",
+                          backgroundColor: "#ff4444",
+                          color: "white",
+                        },
+                        ml: 1,
+                      }}
+                    />
+                  )}
                 </Link>
               )}
 

@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 
 import { clearAuth } from "../utils/storage";
 
-export default function ProfileDropdown({ user }) {
+export default function ProfileDropdown({ user, onLogout }) {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
 
@@ -17,7 +17,17 @@ export default function ProfileDropdown({ user }) {
       console.error("Logout gagal:", error);
     } finally {
       clearAuth(); // hapus semua cookie di sisi client
-      navigate("/login", { replace: true });
+      if (onLogout) {
+        onLogout(); // Call the callback to refresh online users
+      }
+      // Disconnect WebSocket to trigger leave event
+      if (window.Echo) {
+        window.Echo.disconnect();
+      }
+      // Add a small delay to allow WebSocket to disconnect and broadcast leave event
+      setTimeout(() => {
+        navigate("/login", { replace: true });
+      }, 200);
     }
   };
 
