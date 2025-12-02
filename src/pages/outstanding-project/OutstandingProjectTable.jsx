@@ -6,6 +6,7 @@ import { formatDate } from "../../utils/FormatDate";
 import { Box, Typography, TextField, Stack } from "@mui/material";
 import { filterBySearch } from "../../utils/filter";
 import { getClientName } from "../../utils/getClientName";
+import { textRenderer, dateRenderer } from "../../utils/handsontableRenderers";
 
 export default function OutstandingProjectsTable() {
   const [uploading, setUploading] = useState(false);
@@ -77,8 +78,15 @@ export default function OutstandingProjectsTable() {
         const pic = value; // kolom nama PIC
         const photo = instance.getDataAtRowProp(row, 7); // kolom foto
 
+        // Dapatkan domain utama React (bisa localhost, IP, atau virtualhost)
+        const BASE_URL = window.location.origin;
+
+        // Deteksi apakah sedang di development mode (localhost:5173 misalnya)
+        const isLocalDev =
+          BASE_URL.includes("localhost") || BASE_URL.includes("127.0.0.1");
+
         // Base URL Laravel (untuk fallback)
-        const LARAVEL_DEV_URL = "http://192.168.0.90";
+        const LARAVEL_DEV_URL = "http://192.168.0.90:8000";
 
         // Tentukan sumber gambar
         let imgSrc;
@@ -89,11 +97,13 @@ export default function OutstandingProjectsTable() {
             imgSrc = photo
               .replace("localhost", "prolist.citasys")
               .replace("127.0.0.1", "prolist.citasys")
-              .replace("192.168.0.90", "192.168.0.90:8000")
+              .replace("192.168.0.90", "prolist.citasys")
               .replace("prolist.citasys", "192.168.0.90");
           } else {
             // Jika hanya path relatif
-            imgSrc = `${LARAVEL_DEV_URL}/storage/${photo}`;
+            imgSrc = isLocalDev
+              ? `${LARAVEL_DEV_URL}/storage/${photo}` // saat dev
+              : `${BASE_URL}/storage/${photo}`; // saat production (via Apache proxy)
           }
         } else {
           // Jika tidak ada foto, gunakan avatar
@@ -129,12 +139,23 @@ export default function OutstandingProjectsTable() {
         td.appendChild(wrapper);
         return td;
       },
+      readOnly: true,
     },
-    { data: 1, title: "Project Number" },
-    { data: 2, title: "Project Name" },
-    { data: 3, title: "Client" },
-    { data: 4, title: "Target Date" },
-    { data: 5, title: "Progress Update (3 latest)" },
+    {
+      data: 1,
+      title: "Project Number",
+      renderer: textRenderer,
+      readOnly: true,
+    },
+    { data: 2, title: "Project Name", renderer: textRenderer, readOnly: true },
+    { data: 3, title: "Client", renderer: textRenderer, readOnly: true },
+    { data: 4, title: "Target Date", renderer: dateRenderer, readOnly: true },
+    {
+      data: 5,
+      title: "Progress Update (3 latest)",
+      renderer: textRenderer,
+      readOnly: true,
+    },
     {
       data: 6,
       title: "Action",
@@ -152,6 +173,7 @@ export default function OutstandingProjectsTable() {
 
         return td;
       },
+      readOnly: true,
     },
   ];
 
@@ -220,9 +242,7 @@ export default function OutstandingProjectsTable() {
         alignItems="center"
         mb={2}
       >
-        <Typography variant="h5">
-          List Project Outstanding Tahun {currentYear}
-        </Typography>
+        <Typography variant="h5">Open Projects - {currentYear}</Typography>
 
         <TextField
           size="small"
@@ -257,8 +277,10 @@ export default function OutstandingProjectsTable() {
         className="ht-theme-horizon"
         cells={(row, col) => {
           const cellProperties = {};
-          if (col === 0 || col === 6)
+          if (col === 0 || col === 6) {
             cellProperties.className = "htCenter htMiddle";
+          }
+          cellProperties.readOnly = true;
           return cellProperties;
         }}
       />
