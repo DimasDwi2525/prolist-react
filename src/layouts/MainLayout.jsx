@@ -3,6 +3,9 @@ import { FullScreen, useFullScreenHandle } from "react-full-screen";
 import toast, { Toaster } from "react-hot-toast";
 import Sidebar from "../components/Sidebar";
 import Header from "../components/Header";
+import OnlineUsersModal from "../components/modal/OnlineUsersModal";
+import ChatModal from "../components/modal/ChatModal";
+import MessageNotificationModal from "../components/modal/MessageNotificationModal";
 import { getUser, getToken } from "../utils/storage";
 import api from "../api/api";
 import Echo from "laravel-echo";
@@ -78,11 +81,33 @@ export default function MainLayout({ children }) {
   // Online users state
   const [onlineUsers, setOnlineUsers] = useState([]);
   const [isOnlineUsersOpen, setIsOnlineUsersOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [incomingMessage, setIncomingMessage] = useState(null);
+  const [isMessageNotificationOpen, setIsMessageNotificationOpen] =
+    useState(false);
 
   // Sidebar counters
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [pendingApprovals, setPendingApprovals] = useState(0);
   const [pendingRequestInvoices, setPendingRequestInvoices] = useState(0);
+
+  // Handler functions for chat
+  const handleUserClick = (user) => {
+    setSelectedUser(user);
+    setIsOnlineUsersOpen(false);
+    setIsChatOpen(true);
+  };
+
+  const handleCloseChat = () => {
+    setIsChatOpen(false);
+    setSelectedUser(null);
+  };
+
+  const handleCloseMessageNotification = () => {
+    setIsMessageNotificationOpen(false);
+    setIncomingMessage(null);
+  };
 
   // Unlock audio playback on user interaction
   useEffect(() => {
@@ -189,6 +214,58 @@ export default function MainLayout({ children }) {
       sidebarCounterChannel.stopListening(".sidebar.counter.updated");
     };
   }, []);
+
+  // Listen for admin messages
+  useEffect(() => {
+    if (!user || !getToken()) return;
+
+    if (!window.Echo) return;
+
+    // Listen to public channel for broadcast messages
+    const publicChannel = window.Echo.channel("admin.messages")
+      .listen(".admin.message.sent", (e) => {
+        // Show notification modal for incoming messages
+        if (e.sender.id !== user.id) {
+          setIncomingMessage({
+            message: e.message,
+            sender: e.sender,
+          });
+          setIsMessageNotificationOpen(true);
+        } else {
+          console.log("❌ Message from self, ignoring");
+        }
+      })
+      .error((err) => {
+        console.error("❌ Echo channel error for public admin messages:", err);
+      });
+
+    // Listen to private channel for private messages
+    const privateChannel = window.Echo.private(`admin.messages.${user.id}`)
+      .listen(".admin.message.sent", (e) => {
+        // Show notification modal for incoming private messages
+        if (e.sender.id !== user.id) {
+          console.log(
+            "✅ Showing message notification modal from private channel"
+          );
+          setIncomingMessage({
+            message: e.message,
+            sender: e.sender,
+          });
+          setIsMessageNotificationOpen(true);
+        } else {
+          console.log("❌ Message from self, ignoring");
+        }
+      })
+      .error((err) => {
+        console.error("❌ Echo channel error for private admin messages:", err);
+      });
+
+    return () => {
+      console.log("🔇 Cleaning up admin message listeners");
+      publicChannel.stopListening(".admin.message.sent");
+      privateChannel.stopListening(".admin.message.sent");
+    };
+  }, [user.id]); // Use user.id instead of user object to prevent constant re-runs
 
   useEffect(() => {
     if (!user) return;
@@ -403,14 +480,9 @@ export default function MainLayout({ children }) {
       })
       .error((err) => console.error("❌ Echo channel error:", err));
 
-    // Listen to log approval updates on public channel
-    const logApprovalChannel = window.Echo.channel("log.approval.updated")
+    // Listen to log approval updates on private channel
+    const logApprovalChannel = window.Echo.private(`user.${user.id}`)
       .listen(".log.approval.updated", (e) => {
-        // Skip notifying the approver
-        if (e.approver_id && e.approver_id === user.id) {
-          return;
-        }
-
         if (!shownLogApprovalIds.has(e.log_id)) {
           setShownLogApprovalIds((prev) => new Set(prev).add(e.log_id));
           setNotifications((prev) => [
@@ -483,15 +555,8 @@ export default function MainLayout({ children }) {
       );
 
     // New listener for PHC Approval Updated event
-    const phcApprovalUpdatedChannel = window.Echo.channel(
-      "phc.approval.updated"
-    )
+    const phcApprovalUpdatedChannel = window.Echo.private(`user.${user.id}`)
       .listen(".phc.approval.updated", (e) => {
-        // Skip notifying the approver
-        if (e.approver_id && e.approver_id === user.id) {
-          return;
-        }
-
         const phcId = e.phc_id || null;
         if (phcId && !shownPhcApprovalUpdateIds.has(phcId)) {
           setShownPhcApprovalUpdateIds((prev) => new Set(prev).add(phcId));
@@ -514,15 +579,10 @@ export default function MainLayout({ children }) {
       );
 
     // New listener for Work Order Approval Updated event
-    const workOrderApprovalUpdatedChannel = window.Echo.channel(
-      "work_order.approval.updated"
+    const workOrderApprovalUpdatedChannel = window.Echo.private(
+      `user.${user.id}`
     )
       .listen(".work_order.approval.updated", (e) => {
-        // Skip notifying the approver
-        if (e.approver_id && e.approver_id === user.id) {
-          return;
-        }
-
         const workOrderId = e.work_order_id || null;
         if (workOrderId && !shownWorkOrderApprovalUpdateIds.has(workOrderId)) {
           setShownWorkOrderApprovalUpdateIds((prev) =>
@@ -645,59 +705,43 @@ export default function MainLayout({ children }) {
 
       {/* Online Users Component - Only for admin users */}
       {user.name === "admin" && (
-        <div className="fixed bottom-4 right-4 z-50">
-          <div className="relative">
-            <button
-              onClick={() => setIsOnlineUsersOpen(!isOnlineUsersOpen)}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-full shadow-lg flex items-center space-x-2 transition-colors"
-            >
-              <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-              <span className="text-sm font-medium">
-                Online ({onlineUsers.length})
-              </span>
-            </button>
+        <>
+          <div className="fixed bottom-4 right-4 z-50">
+            <div className="relative">
+              <button
+                onClick={() => setIsOnlineUsersOpen(!isOnlineUsersOpen)}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-full shadow-lg flex items-center space-x-2 transition-colors"
+              >
+                <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                <span className="text-sm font-medium">
+                  Online ({onlineUsers.length})
+                </span>
+              </button>
 
-            {isOnlineUsersOpen && (
-              <div className="absolute bottom-full right-0 mb-2 bg-white border border-gray-200 rounded-lg shadow-xl w-64 max-h-80 overflow-y-auto">
-                <div className="p-3 border-b border-gray-200">
-                  <h3 className="text-sm font-semibold text-gray-900">
-                    Online Users ({onlineUsers.length})
-                  </h3>
-                </div>
-                <div className="p-2">
-                  {onlineUsers.length === 0 ? (
-                    <p className="text-sm text-gray-500 text-center py-4">
-                      No users online
-                    </p>
-                  ) : (
-                    onlineUsers.map((onlineUser) => (
-                      <div
-                        key={onlineUser.id}
-                        className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded-md"
-                      >
-                        <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
-                          <span className="text-white text-sm font-medium">
-                            {onlineUser.name.charAt(0).toUpperCase()}
-                          </span>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900 truncate">
-                            {onlineUser.name}
-                          </p>
-                          <p className="text-xs text-gray-500 truncate">
-                            {onlineUser.role || "No role"}
-                          </p>
-                        </div>
-                        <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            )}
+              <OnlineUsersModal
+                isOpen={isOnlineUsersOpen}
+                onlineUsers={onlineUsers}
+                onUserClick={handleUserClick}
+              />
+            </div>
           </div>
-        </div>
+
+          <ChatModal
+            isOpen={isChatOpen}
+            onClose={handleCloseChat}
+            selectedUser={selectedUser}
+            currentUser={user}
+          />
+        </>
       )}
+
+      {/* Message Notification Modal - For all users */}
+      <MessageNotificationModal
+        isOpen={isMessageNotificationOpen}
+        onClose={handleCloseMessageNotification}
+        message={incomingMessage?.message}
+        sender={incomingMessage?.sender}
+      />
 
       <Toaster />
     </FullScreen>
