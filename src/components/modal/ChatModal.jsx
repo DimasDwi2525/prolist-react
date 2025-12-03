@@ -23,14 +23,17 @@ export default function ChatModal({
 
   useEffect(() => {
     if (isOpen && selectedUser) {
-      // Listen for incoming messages
+      // Listen for incoming messages from the selected user
       if (!window.Echo) return;
 
       const channel = window.Echo.channel("admin.messages").listen(
         ".admin.message.sent",
         (e) => {
-          // Check if the message is for this user
-          if (e.sender.id !== currentUser.id) {
+          // Only add messages from the selected user to this chat
+          if (
+            e.sender.id === selectedUser.id &&
+            e.sender.id !== currentUser.id
+          ) {
             setMessages((prev) => [
               ...prev,
               {

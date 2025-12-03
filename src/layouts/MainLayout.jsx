@@ -215,57 +215,47 @@ export default function MainLayout({ children }) {
     };
   }, []);
 
-  // Listen for admin messages
+  const userId = user?.id;
+
+  // Listen for admin messages on public channel
   useEffect(() => {
     if (!user || !getToken()) return;
 
     if (!window.Echo) return;
 
-    // Listen to public channel for broadcast messages
+    // Listen to public channel for all messages (broadcast and private)
     const publicChannel = window.Echo.channel("admin.messages")
       .listen(".admin.message.sent", (e) => {
         // Show notification modal for incoming messages
-        if (e.sender.id !== user.id) {
+        // For broadcast: show to all except sender
+        // For private: show only if user is in targetUsers
+        if (
+          e.sender.id !== userId &&
+          (e.type === "broadcast" ||
+            (e.type === "private" &&
+              e.targetUsers &&
+              e.targetUsers.includes(userId)))
+        ) {
           setIncomingMessage({
             message: e.message,
             sender: e.sender,
           });
           setIsMessageNotificationOpen(true);
+          playNotificationSound();
+          toast.success(e.message, { duration: 5000 });
         } else {
-          console.log("❌ Message from self, ignoring");
+          console.log("❌ Message from self or not for this user, ignoring");
         }
       })
       .error((err) => {
         console.error("❌ Echo channel error for public admin messages:", err);
       });
 
-    // Listen to private channel for private messages
-    const privateChannel = window.Echo.private(`admin.messages.${user.id}`)
-      .listen(".admin.message.sent", (e) => {
-        // Show notification modal for incoming private messages
-        if (e.sender.id !== user.id) {
-          console.log(
-            "✅ Showing message notification modal from private channel"
-          );
-          setIncomingMessage({
-            message: e.message,
-            sender: e.sender,
-          });
-          setIsMessageNotificationOpen(true);
-        } else {
-          console.log("❌ Message from self, ignoring");
-        }
-      })
-      .error((err) => {
-        console.error("❌ Echo channel error for private admin messages:", err);
-      });
-
     return () => {
       console.log("🔇 Cleaning up admin message listeners");
       publicChannel.stopListening(".admin.message.sent");
-      privateChannel.stopListening(".admin.message.sent");
     };
-  }, [user.id]); // Use user.id instead of user object to prevent constant re-runs
+  }, [userId]); // Use userId to prevent constant re-runs
 
   useEffect(() => {
     if (!user) return;
@@ -480,9 +470,14 @@ export default function MainLayout({ children }) {
       })
       .error((err) => console.error("❌ Echo channel error:", err));
 
-    // Listen to log approval updates on private channel
-    const logApprovalChannel = window.Echo.private(`user.${user.id}`)
+    // Listen to log approval updates on public channel
+    const logApprovalChannel = window.Echo.channel("log.approval.updated")
       .listen(".log.approval.updated", (e) => {
+        // Skip notifying the approver
+        if (e.approver_id && e.approver_id === user.id) {
+          return;
+        }
+
         if (!shownLogApprovalIds.has(e.log_id)) {
           setShownLogApprovalIds((prev) => new Set(prev).add(e.log_id));
           setNotifications((prev) => [
@@ -555,8 +550,15 @@ export default function MainLayout({ children }) {
       );
 
     // New listener for PHC Approval Updated event
-    const phcApprovalUpdatedChannel = window.Echo.private(`user.${user.id}`)
+    const phcApprovalUpdatedChannel = window.Echo.channel(
+      "phc.approval.updated"
+    )
       .listen(".phc.approval.updated", (e) => {
+        // Skip notifying the approver
+        if (e.approver_id && e.approver_id === user.id) {
+          return;
+        }
+
         const phcId = e.phc_id || null;
         if (phcId && !shownPhcApprovalUpdateIds.has(phcId)) {
           setShownPhcApprovalUpdateIds((prev) => new Set(prev).add(phcId));
@@ -579,10 +581,15 @@ export default function MainLayout({ children }) {
       );
 
     // New listener for Work Order Approval Updated event
-    const workOrderApprovalUpdatedChannel = window.Echo.private(
-      `user.${user.id}`
+    const workOrderApprovalUpdatedChannel = window.Echo.channel(
+      "work_order.approval.updated"
     )
       .listen(".work_order.approval.updated", (e) => {
+        // Skip notifying the approver
+        if (e.approver_id && e.approver_id === user.id) {
+          return;
+        }
+
         const workOrderId = e.work_order_id || null;
         if (workOrderId && !shownWorkOrderApprovalUpdateIds.has(workOrderId)) {
           setShownWorkOrderApprovalUpdateIds((prev) =>

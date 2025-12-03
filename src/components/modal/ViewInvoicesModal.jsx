@@ -17,11 +17,10 @@ import LoadingOverlay from "../loading/LoadingOverlay";
 import { filterBySearch } from "../../utils/filter";
 import { formatDate } from "../../utils/FormatDate";
 import { formatValue } from "../../utils/formatValue";
-import FormInvoicesModal from "./FormInvoicesModal";
 import ViewInvoicePaymentsModal from "./ViewInvoicePaymentsModal";
-import FormInvoicePaymentsModal from "./FormInvoicePaymentsModal";
 import ViewHoldingTaxModal from "./ViewHoldingTaxModal";
 import FormHoldingTaxModal from "./FormHoldingTaxModal";
+import FormInvoicesModal from "./FormInvoicesModal";
 
 const ViewInvoicesModal = ({
   open,

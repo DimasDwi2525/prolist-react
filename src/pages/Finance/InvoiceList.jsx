@@ -11,6 +11,7 @@ import {
   TablePagination,
   Card,
   CardContent,
+  Button,
 } from "@mui/material";
 import ReactDOM from "react-dom";
 
@@ -20,6 +21,7 @@ import FilterBar from "../../components/filter/FilterBar";
 import { filterBySearch } from "../../utils/filter";
 import { formatValue } from "../../utils/formatValue";
 import ViewInvoiceModal from "../../components/modal/ViewInvoiceModal";
+import FormInvoiceSelectProjectModal from "../../components/modal/FormInvoiceSelectProjectModal";
 
 import {
   dateRenderer,
@@ -44,6 +46,8 @@ export default function InvoiceList() {
   const [pageSize, setPageSize] = useState(10);
   const [openViewModal, setOpenViewModal] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
+  const [openFormModal, setOpenFormModal] = useState(false);
+  const [selectedProjectId, setSelectedProjectId] = useState(null);
 
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -382,6 +386,19 @@ export default function InvoiceList() {
         mt={3}
         mb={2}
       >
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={() => setOpenFormModal(true)}
+          sx={{
+            textTransform: "none",
+            fontWeight: 600,
+            borderRadius: 2,
+            px: 3,
+          }}
+        >
+          Add Invoice
+        </Button>
         <TextField
           size="small"
           placeholder="Search invoices..."
@@ -460,6 +477,21 @@ export default function InvoiceList() {
           setSelectedInvoice(null);
         }}
         invoice={selectedInvoice}
+      />
+
+      {/* Form Invoice Modal */}
+      <FormInvoiceSelectProjectModal
+        open={openFormModal}
+        onClose={() => {
+          setOpenFormModal(false);
+          setSelectedProjectId(null);
+        }}
+        projectId={selectedProjectId}
+        onSave={() => {
+          fetchData(); // Refresh the list after saving
+          setOpenFormModal(false);
+          setSelectedProjectId(null);
+        }}
       />
     </Box>
   );

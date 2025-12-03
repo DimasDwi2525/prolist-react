@@ -37,13 +37,16 @@ import { formatValue } from "../../utils/formatValue";
 import { formatDate } from "../../utils/FormatDate";
 import { sortOptions } from "../../helper/SortOptions";
 
-export default function FormInvoicesModal({
+export default function FormInvoiceSelectProjectModal({
   open,
   onClose,
   projectId,
   invoiceData = null,
   onSave,
 }) {
+  const [projects, setProjects] = useState([]);
+  const [loadingProjects, setLoadingProjects] = useState(false);
+  const [selectedProject, setSelectedProject] = useState(null);
   const [formData, setFormData] = useState({
     invoice_type_id: null,
     invoice_sequence: "",
@@ -93,6 +96,11 @@ export default function FormInvoicesModal({
 
   const [fullInvoiceData, setFullInvoiceData] = useState(null);
 
+  // Year filter states
+  const currentYear = new Date().getFullYear();
+  const [selectedYear, setSelectedYear] = useState("");
+  const [availableYears, setAvailableYears] = useState([]);
+
   // Project financial summary states
   const [remainingProjectValue, setRemainingProjectValue] = useState(0);
   const [totalInvoiceValue, setTotalInvoiceValue] = useState(0);
@@ -105,9 +113,67 @@ export default function FormInvoicesModal({
 
   const isEditMode = Boolean(invoiceData);
 
-  // Fetch invoice types and project info
+  // Fetch projects, invoice types and project info
   useEffect(() => {
     if (!open) return;
+
+    const fetchProjects = async () => {
+      setLoadingProjects(true);
+      try {
+        // First fetch all projects to get available years from po_date
+        const allProjectsResponse = await api.get("/projects", {
+          params: { limit: 10000 }, // Fetch all projects to get years
+        });
+        const allProjectsData = allProjectsResponse.data?.data || [];
+
+        // Extract unique years from po_date
+        const yearsSet = new Set();
+        allProjectsData.forEach((project) => {
+          if (project.po_date) {
+            const year = new Date(project.po_date).getFullYear();
+            if (!isNaN(year)) {
+              yearsSet.add(year.toString());
+            }
+          }
+        });
+
+        // Sort years in descending order and set available years
+        const sortedYears = Array.from(yearsSet).sort((a, b) => b - a);
+        setAvailableYears(sortedYears);
+
+        // If no years available, set current year as default
+        if (sortedYears.length === 0) {
+          setAvailableYears([currentYear.toString()]);
+          setSelectedYear(currentYear.toString());
+        } else {
+          // Set selected year to current year if available, otherwise first available
+          const yearToSelect = sortedYears.includes(currentYear.toString())
+            ? currentYear.toString()
+            : sortedYears[0];
+          setSelectedYear(yearToSelect);
+        }
+
+        // Now fetch projects filtered by selected year
+        const response = await api.get("/projects", {
+          params: { year: selectedYear, limit: 1000 }, // Filter by selected year
+        });
+        const projectsData = response.data?.data || [];
+        setProjects(projectsData);
+
+        // If projectId is provided, set it as selected
+        if (projectId) {
+          const selectedProj = projectsData.find((p) => p.id === projectId);
+          setSelectedProject(selectedProj || null);
+        }
+      } catch (error) {
+        console.error("Failed to fetch projects:", error);
+        setProjects([]);
+        // Fallback to current year if error
+        setAvailableYears([currentYear.toString()]);
+      } finally {
+        setLoadingProjects(false);
+      }
+    };
 
     const fetchInvoiceTypes = async () => {
       setLoadingTypes(true);
@@ -122,35 +188,84 @@ export default function FormInvoicesModal({
       }
     };
 
-    const fetchProjectInfo = async () => {
-      const projectIdToUse = projectId || invoiceData?.project_id;
-      if (!projectIdToUse) return;
-      setLoadingProject(true);
+    fetchProjects();
+    fetchInvoiceTypes();
+  }, [open, projectId]);
+
+  // Fetch projects when selected year changes
+  useEffect(() => {
+    if (!open || availableYears.length === 0) return;
+
+    const fetchProjectsByYear = async () => {
+      setLoadingProjects(true);
       try {
-        const response = await api.get(`/projects/${projectIdToUse}`);
-        setProjectInfo(
-          response.data?.data?.project ||
-            response.data?.data ||
-            response.data ||
-            null
-        );
+        const response = await api.get("/projects", {
+          params: { year: selectedYear, limit: 1000 },
+        });
+        const projectsData = response.data?.data || [];
+        setProjects(projectsData);
+
+        // If projectId is provided, set it as selected
+        if (projectId) {
+          const selectedProj = projectsData.find((p) => p.id === projectId);
+          setSelectedProject(selectedProj || null);
+        }
       } catch (error) {
-        console.error("Failed to fetch project info:", error);
-        setProjectInfo(null);
+        console.error("Failed to fetch projects:", error);
+        setProjects([]);
       } finally {
-        setLoadingProject(false);
+        setLoadingProjects(false);
       }
     };
 
-    const fetchProjectInvoices = async () => {
-      const projectIdToUse = projectId || invoiceData?.project_id;
-      if (!projectIdToUse) return;
+    fetchProjectsByYear();
+  }, [selectedYear, availableYears.length, open, projectId]);
+
+  // Reset selected project when year changes
+  useEffect(() => {
+    setSelectedProject(null);
+  }, [selectedYear]);
+
+  // Update selectedProject when formData.project_id changes
+  useEffect(() => {
+    if (formData.project_id && projects.length > 0) {
+      const selectedProj = projects.find(
+        (p) => p.pn_number === formData.project_id
+      );
+      setSelectedProject(selectedProj || null);
+    } else {
+      setSelectedProject(null);
+    }
+  }, [formData.project_id, projects]);
+
+  // Fetch project info and invoices when selected project changes
+  useEffect(() => {
+    console.log("useEffect triggered with selectedProject:", selectedProject);
+    if (!selectedProject?.id && !selectedProject?.pn_number) {
+      console.log("No selectedProject id or pn_number, resetting values");
+      setProjectInfo(null);
+      setInvoicesList([]);
+      setTotalInvoiceValue(0);
+      setProjectValue(0);
+      setRemainingProjectValue(0);
+      return;
+    }
+
+    const fetchData = async () => {
+      setLoadingProject(true);
       setLoadingInvoices(true);
       try {
-        const response = await api.get("/finance/invoices", {
-          params: { project_id: projectIdToUse },
+        // Fetch project info using id if available, otherwise use pn_number
+        const projectId = selectedProject.id || selectedProject.pn_number;
+        const projectResponse = await api.get(`/projects/${projectId}`);
+        const projectData = projectResponse.data?.data || selectedProject;
+        setProjectInfo(projectData);
+
+        // Fetch invoices using pn_number as project_id
+        const invoicesResponse = await api.get("/finance/invoices", {
+          params: { project_id: encodeURIComponent(selectedProject.pn_number) },
         });
-        const invoices = response.data?.invoices || [];
+        const invoices = invoicesResponse.data?.invoices || [];
         setInvoicesList(invoices);
 
         // Calculate totals
@@ -159,42 +274,41 @@ export default function FormInvoicesModal({
           0
         );
         setTotalInvoiceValue(totalInvValue);
+
+        // Get project value from project data (clean formatted strings)
+        const apiPoValue = projectData?.po_value;
+        const fallbackPoValue = selectedProject?.po_value;
+        const poValueToUse =
+          apiPoValue !== null && apiPoValue !== undefined
+            ? apiPoValue
+            : fallbackPoValue;
+        const projValue =
+          parseFloat(poValueToUse?.toString().replace(/[^\d.]/g, "")) || 0;
+        setProjectValue(projValue);
+
+        // Use remaining project value from API response (more accurate)
+        const remainingFromAPI =
+          invoices.length > 0 ? invoices[0].remaining_project_value : 0;
+        setRemainingProjectValue(remainingFromAPI || projValue - totalInvValue);
       } catch (error) {
-        console.error("Failed to fetch project invoices:", error);
+        console.error("Failed to fetch project data:", error);
+        setProjectInfo(selectedProject);
         setInvoicesList([]);
         setTotalInvoiceValue(0);
+        const projValue =
+          parseFloat(
+            selectedProject?.po_value?.toString().replace(/[^\d.]/g, "")
+          ) || 0;
+        setProjectValue(projValue);
+        setRemainingProjectValue(projValue);
       } finally {
+        setLoadingProject(false);
         setLoadingInvoices(false);
       }
     };
 
-    fetchInvoiceTypes();
-    fetchProjectInfo();
-    fetchProjectInvoices();
-  }, [open, projectId, invoiceData?.project_id]);
-
-  // Calculate project value and remaining value when data is available
-  useEffect(() => {
-    if (projectInfo && invoicesList.length >= 0) {
-      const projValue =
-        projectInfo.po_value ||
-        (invoicesList.length > 0 && invoicesList[0].project
-          ? invoicesList[0].project.po_value
-          : 0) ||
-        0;
-      setProjectValue(projValue);
-
-      const remainingFromAPI =
-        invoicesList.length > 0
-          ? invoicesList[0].remaining_project_value
-          : null;
-      if (remainingFromAPI !== null && remainingFromAPI !== undefined) {
-        setRemainingProjectValue(remainingFromAPI);
-      } else {
-        setRemainingProjectValue(projValue - totalInvoiceValue);
-      }
-    }
-  }, [projectInfo, invoicesList, totalInvoiceValue]);
+    fetchData();
+  }, [selectedProject]);
 
   // Fetch next global sequence when invoice type is selected (for create mode)
   useEffect(() => {
@@ -344,9 +458,21 @@ export default function FormInvoicesModal({
         });
         setOriginalInvoiceTypeId(null);
       }
+      // Reset all states when modal opens
+      setSelectedProject(null);
+      setProjectInfo(null);
+      setRemainingProjectValue(0);
+      setTotalInvoiceValue(0);
+      setProjectValue(0);
+      setInvoicesList([]);
+      setShowInvoicesList(false);
       setShowPreview(false);
       setPreviewData(null);
       setPreviewInvoiceId(null);
+      setTaxPreview(null);
+      setSequenceError("");
+      setValidatingSequence(false);
+      setNextSequence("");
     }
   }, [open, isEditMode, invoiceData, fullInvoiceData]);
 
@@ -506,6 +632,7 @@ export default function FormInvoicesModal({
       try {
         const response = await api.get("/finance/invoices/validate-sequence", {
           params: {
+            project_id: selectedProject.pn_number,
             invoice_type_id: formData.invoice_type_id,
             invoice_sequence: parseInt(numericValue),
             ...(isEditMode &&
@@ -625,6 +752,16 @@ export default function FormInvoicesModal({
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Validation: Check if invoice type is selected
+    if (!formData.invoice_type_id) {
+      setSnackbar({
+        open: true,
+        message: "Please select an invoice type.",
+        severity: "error",
+      });
+      return;
+    }
+
     // Validation: Check if rate_usd is required for USD currency
     if (formData.currency === "USD" && !formData.rate_usd) {
       setSnackbar({
@@ -638,15 +775,15 @@ export default function FormInvoicesModal({
     // Validation: Check if invoice value exceeds project value using API
     if (formData.invoice_value) {
       try {
-        const params = {
-          project_id: projectId,
-          invoice_value: parseFloat(formData.invoice_value),
-          ...(isEditMode &&
-            invoiceData?.invoice_id && { invoice_id: invoiceData.invoice_id }),
-        };
-
         const response = await api.get("/finance/invoices/validate", {
-          params,
+          params: {
+            project_id: selectedProject.pn_number,
+            invoice_value: parseFloat(formData.invoice_value),
+            ...(isEditMode &&
+              invoiceData?.invoice_id && {
+                invoice_id: invoiceData.invoice_id,
+              }),
+          },
         });
 
         if (!response.data.valid) {
@@ -718,7 +855,7 @@ export default function FormInvoicesModal({
       invoice_id: isEditMode
         ? generatedId || invoiceData?.invoice_id || "N/A"
         : generatedId || previewInvoiceId || "IP/25/0001",
-      project_id: projectId,
+      project_id: selectedProject.pn_number,
       invoice_type: selectedType
         ? `${selectedType.code_type} - ${selectedType.description}`
         : "Not selected",
@@ -766,7 +903,7 @@ export default function FormInvoicesModal({
     setSubmitting(true);
     try {
       const payload = {
-        project_id: projectId,
+        project_id: selectedProject.pn_number,
         invoice_type_id: formData.invoice_type_id,
         invoice_sequence: formData.invoice_sequence
           ? parseInt(formData.invoice_sequence)
@@ -1352,6 +1489,245 @@ export default function FormInvoicesModal({
 
           <DialogContent dividers sx={{ py: 3 }}>
             <Box sx={{ p: 2 }}>
+              {/* Project Selection Section */}
+              <Paper
+                elevation={1}
+                sx={{
+                  p: 3,
+                  mb: 3,
+                  borderRadius: 3,
+                  border: "1px solid",
+                  borderColor: "divider",
+                  background:
+                    "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)",
+                }}
+              >
+                <Typography
+                  variant="h6"
+                  sx={{
+                    mb: 3,
+                    fontWeight: 700,
+                    color: "primary.main",
+                    display: "flex",
+                    alignItems: "center",
+                    fontSize: "1.1rem",
+                  }}
+                >
+                  <Building2 sx={{ mr: 1.5, fontSize: 22 }} />
+                  Select Project *
+                  <Typography
+                    component="span"
+                    variant="caption"
+                    sx={{ color: "error.main", fontWeight: 500, ml: 1 }}
+                  >
+                    (Required)
+                  </Typography>
+                </Typography>
+
+                {/* Year Filter */}
+                <Box sx={{ mb: 3 }}>
+                  <Typography
+                    variant="subtitle2"
+                    sx={{
+                      mb: 2,
+                      fontWeight: 600,
+                      color: "text.primary",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 1,
+                    }}
+                  >
+                    <Calendar sx={{ fontSize: 16, color: "primary.main" }} />
+                    Filter by Year
+                  </Typography>
+
+                  <FormControl fullWidth>
+                    <InputLabel>Year</InputLabel>
+                    <Select
+                      value={selectedYear}
+                      label="Year"
+                      onChange={(e) => setSelectedYear(e.target.value)}
+                      sx={{
+                        borderRadius: 2,
+                        backgroundColor: "background.paper",
+                        "&:hover .MuiOutlinedInput-notchedOutline": {
+                          borderColor: "primary.main",
+                        },
+                        "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                          borderColor: "primary.main",
+                          borderWidth: 2,
+                        },
+                      }}
+                    >
+                      {availableYears.map((year) => (
+                        <MenuItem key={year} value={year}>
+                          {year}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Box>
+
+                <Autocomplete
+                  fullWidth
+                  options={sortOptions(projects, "project_number")}
+                  getOptionLabel={(option) =>
+                    `${option.project_number || "N/A"} - ${
+                      option.project_name || "Unnamed Project"
+                    } ${option.year ? `(${option.year})` : ""}`
+                  }
+                  value={selectedProject}
+                  onChange={(e, newValue) => {
+                    setSelectedProject(newValue);
+                  }}
+                  loading={loadingProjects}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      placeholder="Search and select a project..."
+                      InputProps={{
+                        ...params.InputProps,
+                        startAdornment: (
+                          <Building2
+                            sx={{
+                              mr: 1,
+                              color: "action.active",
+                              fontSize: 20,
+                            }}
+                          />
+                        ),
+                        endAdornment: (
+                          <>
+                            {loadingProjects ? (
+                              <CircularProgress color="inherit" size={20} />
+                            ) : null}
+                            {params.InputProps.endAdornment}
+                          </>
+                        ),
+                      }}
+                      sx={{
+                        "& .MuiOutlinedInput-root": {
+                          borderRadius: 2,
+                          backgroundColor: "background.paper",
+                          "&:hover": {
+                            "& .MuiOutlinedInput-notchedOutline": {
+                              borderColor: "primary.main",
+                              borderWidth: 2,
+                            },
+                          },
+                          "&.Mui-focused": {
+                            "& .MuiOutlinedInput-notchedOutline": {
+                              borderColor: "primary.main",
+                              borderWidth: 2,
+                            },
+                            boxShadow: "0 0 0 3px rgba(37, 99, 235, 0.1)",
+                          },
+                        },
+                      }}
+                    />
+                  )}
+                  renderOption={(props, option) => {
+                    const { key, ...otherProps } = props;
+                    return (
+                      <Box
+                        component="li"
+                        key={key}
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 2,
+                          py: 1.5,
+                          px: 2,
+                          borderRadius: 1,
+                          backgroundColor: "background.paper",
+                        }}
+                        {...otherProps}
+                      >
+                        <Building2
+                          sx={{ fontSize: 18, color: "primary.main" }}
+                        />
+                        <Box sx={{ flex: 1 }}>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              fontWeight: 600,
+                              fontFamily: "monospace",
+                              color: "text.primary",
+                            }}
+                          >
+                            {option.project_number || "N/A"}
+                          </Typography>
+                          <Typography
+                            variant="caption"
+                            sx={{ color: "text.secondary" }}
+                          >
+                            {option.project_name || "Unnamed Project"}
+                          </Typography>
+                          {option.year && (
+                            <Typography
+                              variant="caption"
+                              sx={{ color: "text.secondary", display: "block" }}
+                            >
+                              Year: {option.year}
+                            </Typography>
+                          )}
+                          {option.quotation?.client?.name && (
+                            <Typography
+                              variant="caption"
+                              sx={{ color: "text.secondary", display: "block" }}
+                            >
+                              Client: {option.quotation.client.name}
+                            </Typography>
+                          )}
+                        </Box>
+                        {option.po_value && (
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              fontWeight: 600,
+                              color: "success.main",
+                              ml: 2,
+                            }}
+                          >
+                            {formatValue(option.po_value).formatted}
+                          </Typography>
+                        )}
+                      </Box>
+                    );
+                  }}
+                  PaperComponent={({ children, ...props }) => (
+                    <Paper
+                      {...props}
+                      sx={{
+                        mt: 1,
+                        borderRadius: 2,
+                        boxShadow: "0 8px 32px rgba(0,0,0,0.12)",
+                        border: "1px solid",
+                        borderColor: "divider",
+                        maxHeight: 300,
+                        overflow: "auto",
+                      }}
+                    >
+                      {children}
+                    </Paper>
+                  )}
+                />
+
+                {!selectedProject && (
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: "text.secondary",
+                      mt: 2,
+                      textAlign: "center",
+                      fontStyle: "italic",
+                    }}
+                  >
+                    Please select a project to continue with invoice creation
+                  </Typography>
+                )}
+              </Paper>
+
               {/* Project Information Section */}
               <Paper
                 elevation={1}
@@ -1380,13 +1756,7 @@ export default function FormInvoicesModal({
                   Project Information
                 </Typography>
 
-                {loadingProject ? (
-                  <Box
-                    sx={{ display: "flex", justifyContent: "center", py: 2 }}
-                  >
-                    <CircularProgress size={24} />
-                  </Box>
-                ) : projectInfo ? (
+                {selectedProject ? (
                   <Grid container spacing={3}>
                     <Grid size={{ xs: 12, md: 3 }}>
                       <Box
@@ -1407,7 +1777,7 @@ export default function FormInvoicesModal({
                             variant="body2"
                             sx={{ fontWeight: 600, color: "primary.main" }}
                           >
-                            {projectInfo.project_number || "N/A"}
+                            {selectedProject.project_number || "N/A"}
                           </Typography>
                         </Box>
                       </Box>
@@ -1426,8 +1796,8 @@ export default function FormInvoicesModal({
                             Client
                           </Typography>
                           <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                            {projectInfo.quotation?.client?.name ||
-                              projectInfo.client?.name ||
+                            {selectedProject.quotation?.client?.name ||
+                              selectedProject.client?.name ||
                               "N/A"}
                           </Typography>
                         </Box>
@@ -1452,8 +1822,8 @@ export default function FormInvoicesModal({
                             variant="body2"
                             sx={{ fontWeight: 600, color: "success.main" }}
                           >
-                            {projectInfo.po_value
-                              ? formatValue(projectInfo.po_value).formatted
+                            {selectedProject.po_value
+                              ? formatValue(selectedProject.po_value).formatted
                               : "N/A"}
                           </Typography>
                         </Box>
@@ -1475,7 +1845,11 @@ export default function FormInvoicesModal({
                             PO Number
                           </Typography>
                           <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                            {projectInfo.po_number || "N/A"}
+                            {loadingProject ? (
+                              <CircularProgress size={16} />
+                            ) : (
+                              projectInfo?.po_number || "N/A"
+                            )}
                           </Typography>
                         </Box>
                       </Box>
@@ -1487,7 +1861,7 @@ export default function FormInvoicesModal({
                     color="text.secondary"
                     sx={{ textAlign: "center", py: 2 }}
                   >
-                    Project information not available
+                    Select a project to view information
                   </Typography>
                 )}
               </Paper>
@@ -3315,6 +3689,23 @@ export default function FormInvoicesModal({
             }}
           >
             Cancel
+          </Button>
+          <Button
+            onClick={() => {
+              if (warningModal.onConfirm) {
+                warningModal.onConfirm();
+              }
+            }}
+            variant="contained"
+            color="warning"
+            sx={{
+              px: 3,
+              fontWeight: 600,
+              textTransform: "none",
+              borderRadius: 2,
+            }}
+          >
+            Proceed Anyway
           </Button>
         </DialogActions>
       </Dialog>
