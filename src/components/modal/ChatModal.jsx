@@ -21,27 +21,81 @@ export default function ChatModal({
     scrollToBottom();
   }, [messages]);
 
+  // Mark messages as read when chat modal opens
+  useEffect(() => {
+    if (isOpen && messages.length > 0) {
+      const unreadMessageIds = messages
+        .filter((msg) => !msg.isMine && !msg.read)
+        .map((msg) => msg.id);
+
+      if (unreadMessageIds.length > 0) {
+        markMessagesAsRead(unreadMessageIds);
+      }
+    }
+  }, [isOpen, messages]);
+
+  const markMessagesAsRead = async (messageIds) => {
+    try {
+      const token = getToken();
+      for (const messageId of messageIds) {
+        await api.post(
+          "/messages/mark-as-read",
+          {
+            message_id: messageId,
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+      }
+      console.log("✅ Messages marked as read:", messageIds);
+    } catch (error) {
+      console.error("❌ Error marking messages as read:", error);
+    }
+  };
+
   useEffect(() => {
     if (isOpen && selectedUser) {
       // Listen for incoming messages from the selected user
       if (!window.Echo) return;
 
-      const channel = window.Echo.channel("admin.messages").listen(
-        ".admin.message.sent",
+      const channel = window.Echo.private(`user.${currentUser.id}`).listen(
+        ".user.message",
         (e) => {
-          // Only add messages from the selected user to this chat
-          if (
-            e.sender.id === selectedUser.id &&
-            e.sender.id !== currentUser.id
-          ) {
+          console.log("📨 Received user message event:", e);
+          console.log(
+            "👤 Current user:",
+            currentUser.id,
+            "Selected user:",
+            selectedUser.id
+          );
+          console.log("📧 Message type:", e.type, "Target:", e.target);
+
+          // For user-to-user messages, check if this message is intended for the current user
+          // The target should be the current user's ID
+          const isForCurrentUser =
+            e.target === currentUser.id.toString() ||
+            e.target === parseInt(currentUser.id);
+
+          console.log("🔒 Message check:", {
+            isForCurrentUser,
+            target: e.target,
+            currentUserId: currentUser.id,
+            type: e.type,
+          });
+
+          if (isForCurrentUser) {
             setMessages((prev) => [
               ...prev,
               {
-                id: Date.now(),
+                id: e.message_id,
                 message: e.message,
-                sender: e.sender,
+                sender: { name: "User", id: null }, // Sender info not available in broadcast
                 timestamp: e.timestamp,
                 isMine: false,
+                read: false, // Mark as unread initially
               },
             ]);
           }
@@ -49,7 +103,7 @@ export default function ChatModal({
       );
 
       return () => {
-        channel.stopListening(".admin.message.sent");
+        channel.stopListening(".user.message");
       };
     }
   }, [isOpen, selectedUser, currentUser]);
@@ -70,10 +124,10 @@ export default function ChatModal({
     try {
       const token = getToken();
       const response = await api.post(
-        "/admin/broadcast/users",
+        "/messages/send-to-user",
         {
+          user_id: selectedUser.id,
           message: message.trim(),
-          user_ids: [selectedUser.id],
         },
         {
           headers: {
@@ -98,11 +152,27 @@ export default function ChatModal({
         ]);
         setMessage("");
       } else {
-        console.log("❌ Message send failed:", response.data);
+        console.error(
+          "❌ Message send failed (API returned success=false):",
+          response.data
+        );
       }
     } catch (error) {
-      console.error("❌ Error sending message:", error);
-      // You might want to show an error toast here
+      if (error.response) {
+        // Server responded with a status other than 2xx
+        console.error("❌ Server error:", {
+          status: error.response.status,
+          data: error.response.data,
+          headers: error.response.headers,
+        });
+      } else if (error.request) {
+        // Request was made but no response received
+        console.error("❌ No response received from server:", error.request);
+      } else {
+        // Something happened in setting up the request
+        console.error("❌ Error setting up request:", error.message);
+      }
+      console.error("❌ Full error object:", error);
     } finally {
       setIsLoading(false);
     }

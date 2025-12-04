@@ -76,6 +76,8 @@ export default function MainLayout({ children }) {
   const [shownWorkOrderApprovalUpdateIds, setShownWorkOrderApprovalUpdateIds] =
     useState(new Set());
 
+  const [shownUserMessageIds, setShownUserMessageIds] = useState(new Set());
+
   const [projects, setProjects] = useState([]);
 
   // Online users state
@@ -215,48 +217,6 @@ export default function MainLayout({ children }) {
     };
   }, []);
 
-  const userId = user?.id;
-
-  // Listen for admin messages on public channel
-  useEffect(() => {
-    if (!user || !getToken()) return;
-
-    if (!window.Echo) return;
-
-    // Listen to public channel for all messages (broadcast and private)
-    const publicChannel = window.Echo.channel("admin.messages")
-      .listen(".admin.message.sent", (e) => {
-        // Show notification modal for incoming messages
-        // For broadcast: show to all except sender
-        // For private: show only if user is in targetUsers
-        if (
-          e.sender.id !== userId &&
-          (e.type === "broadcast" ||
-            (e.type === "private" &&
-              e.targetUsers &&
-              e.targetUsers.includes(userId)))
-        ) {
-          setIncomingMessage({
-            message: e.message,
-            sender: e.sender,
-          });
-          setIsMessageNotificationOpen(true);
-          playNotificationSound();
-          toast.success(e.message, { duration: 5000 });
-        } else {
-          console.log("❌ Message from self or not for this user, ignoring");
-        }
-      })
-      .error((err) => {
-        console.error("❌ Echo channel error for public admin messages:", err);
-      });
-
-    return () => {
-      console.log("🔇 Cleaning up admin message listeners");
-      publicChannel.stopListening(".admin.message.sent");
-    };
-  }, [userId]); // Use userId to prevent constant re-runs
-
   useEffect(() => {
     if (!user) return;
 
@@ -305,23 +265,58 @@ export default function MainLayout({ children }) {
     // Initialize Echo if not already done
     if (!window.Echo) {
       window.Pusher = Pusher;
-      window.Echo = new Echo({
+
+      // Dynamic configuration for localhost vs HTTPS servers
+      const isLocalhost =
+        window.location.hostname === "localhost" ||
+        window.location.hostname === "127.0.0.1";
+      const isHttps = window.location.protocol === "https:";
+
+      let echoConfig = {
         broadcaster: "reverb",
         key: "ur5wyexnhstdyw0qigqc",
-        wsHost: "127.0.0.1",
-        wsPort: 8080,
         enabledTransports: ["ws", "wss"],
-        forceTLS: false,
-        authEndpoint: "http://localhost:8000/api/broadcasting/auth",
         auth: {
           headers: {
             Authorization: `Bearer ${token}`,
             Accept: "application/json",
           },
         },
-      });
+      };
 
-      window.Echo.connector.pusher.connection.bind("connected", () => {});
+      if (isLocalhost) {
+        // For localhost development
+        echoConfig = {
+          ...echoConfig,
+          wsHost: window.location.hostname,
+          wsPort: 8080,
+          forceTLS: false,
+          authEndpoint: `${window.location.protocol}//${window.location.hostname}:8000/api/broadcasting/auth`,
+        };
+      } else if (isHttps) {
+        // For HTTPS production servers - no port needed, let server handle WebSocket
+        echoConfig = {
+          ...echoConfig,
+          wsHost: window.location.hostname,
+          forceTLS: true,
+          authEndpoint: `${window.location.protocol}//${window.location.hostname}/api/broadcasting/auth`,
+        };
+      } else {
+        // For HTTP production servers
+        echoConfig = {
+          ...echoConfig,
+          wsHost: window.location.hostname,
+          wsPort: 8080,
+          forceTLS: false,
+          authEndpoint: `${window.location.protocol}//${window.location.hostname}:8000/api/broadcasting/auth`,
+        };
+      }
+
+      window.Echo = new Echo(echoConfig);
+
+      window.Echo.connector.pusher.connection.bind("connected", () => {
+        console.log("✅ Echo connected successfully");
+      });
 
       window.Echo.connector.pusher.connection.bind("error", (err) => {
         console.error("❌ Reverb connection error:", err);
@@ -364,11 +359,11 @@ export default function MainLayout({ children }) {
       window.Echo = new Echo({
         broadcaster: "reverb",
         key: "ur5wyexnhstdyw0qigqc",
-        wsHost: "127.0.0.1",
+        wsHost: window.location.hostname,
         wsPort: 8080,
         enabledTransports: ["ws", "wss"],
         forceTLS: false,
-        authEndpoint: "http://localhost:8000/api/broadcasting/auth",
+        authEndpoint: `${window.location.protocol}//${window.location.hostname}:8000/api/broadcasting/auth`,
         auth: {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -616,6 +611,97 @@ export default function MainLayout({ children }) {
         )
       );
 
+    // New listener for User Messages
+    const userMessageChannel = window.Echo.private(`user.${user.id}`)
+      .listen(".user.message", (e) => {
+        console.log("📨 Received user message:", e);
+
+        // Prevent duplicate notifications for the same message
+        if (shownUserMessageIds.has(e.message_id)) {
+          return;
+        }
+
+        setShownUserMessageIds((prev) => new Set(prev).add(e.message_id));
+
+        // Show message notification modal
+        setIncomingMessage({
+          message: e.message,
+          sender: { name: "System", id: null }, // Since it's a broadcast, sender info might not be available
+          messageId: e.message_id,
+        });
+        setIsMessageNotificationOpen(true);
+
+        // Also add to notifications list
+        const notification = {
+          id: e.message_id,
+          type: "user_message",
+          data: {
+            message: e.message,
+            message_id: e.message_id,
+            timestamp: e.timestamp,
+            type: e.type,
+            target: e.target,
+          },
+          read_at: null,
+          created_at: e.timestamp,
+        };
+        setNotifications((prev) => [notification, ...prev]);
+
+        playNotificationSound();
+        toast.success("New message received", { duration: 5000 });
+      })
+      .error((err) =>
+        console.error("❌ Echo channel error for user messages:", err)
+      );
+
+    // Listen for role-based messages if user has a role
+    let roleMessageChannel = null;
+    if (user.role && user.role.name) {
+      // Use the actual role name from the database, not the mapped role
+      // The backend authorization expects the exact role name
+      roleMessageChannel = window.Echo.private(`role.${user.role.name}`)
+        .listen(".user.message", (e) => {
+          console.log("📨 Received role message:", e);
+
+          // Prevent duplicate notifications for the same message
+          if (shownUserMessageIds.has(e.message_id)) {
+            return;
+          }
+
+          setShownUserMessageIds((prev) => new Set(prev).add(e.message_id));
+
+          // Show message notification modal
+          setIncomingMessage({
+            message: e.message,
+            sender: { name: "System", id: null },
+            messageId: e.message_id,
+          });
+          setIsMessageNotificationOpen(true);
+
+          // Also add to notifications list
+          const notification = {
+            id: e.message_id,
+            type: "role_message",
+            data: {
+              message: e.message,
+              message_id: e.message_id,
+              timestamp: e.timestamp,
+              type: e.type,
+              target: e.target,
+            },
+            read_at: null,
+            created_at: e.timestamp,
+          };
+          setNotifications((prev) => [notification, ...prev]);
+
+          playNotificationSound();
+          toast.success("New message received", { duration: 5000 });
+        })
+        .error((err) =>
+          console.error("❌ Echo channel error for role messages:", err)
+        );
+    }
+
     return () => {
       phcChannel.stopListening(".phc_created");
       requestInvoiceChannel.stopListening(".request.invoice.created");
@@ -629,6 +715,11 @@ export default function MainLayout({ children }) {
       workOrderApprovalUpdatedChannel.stopListening(
         ".work_order.approval.updated"
       );
+
+      userMessageChannel.stopListening(".user.message");
+      if (roleMessageChannel) {
+        roleMessageChannel.stopListening(".user.message");
+      }
 
       // Presence channel cleanup is handled automatically
     };
