@@ -1,3 +1,5 @@
+import Handsontable from "handsontable";
+
 export const formatDate = (val) => {
   if (!val) return "-";
   try {
@@ -12,23 +14,23 @@ export const formatDate = (val) => {
 };
 
 export const dateRenderer = (instance, td, row, col, prop, value) => {
-  td.innerText = formatDate(value);
+  td.textContent = formatDate(value);
   td.style.color = "#000";
   return td;
 };
 
 export const textRenderer = (instance, td, row, col, prop, value) => {
-  td.innerText = value || "-";
+  td.textContent = value || "-";
   td.style.color = "#000";
   return td;
 };
 
 export const valueRenderer = (instance, td, row, col, prop, value) => {
   if (value == null || value === "" || isNaN(value)) {
-    td.innerText = "-";
+    td.textContent = "-";
     td.style.color = "#9ca3af"; // gray color for invalid values
   } else {
-    td.innerText = new Intl.NumberFormat("id-ID", {
+    td.textContent = new Intl.NumberFormat("id-ID", {
       style: "currency",
       currency: "IDR",
       maximumFractionDigits: 0,
@@ -104,7 +106,18 @@ export const booleanRenderer = (instance, td, row, col, prop, value) => {
   const color = isYes ? "white" : "black";
   const border = isYes ? "none" : "1px solid #ccc";
 
-  td.innerHTML = `<span style="background-color: ${bgColor}; color: ${color}; border: ${border}; padding: 4px 8px; border-radius: 12px; font-size: 12px;">${label}</span>`;
+  const span = document.createElement("span");
+  span.textContent = label;
+  span.style.backgroundColor = bgColor;
+  span.style.color = color;
+  span.style.border = border;
+  span.style.padding = "4px 8px";
+  span.style.borderRadius = "12px";
+  span.style.fontSize = "12px";
+
+  td.innerHTML = ""; // Clear existing content
+  td.appendChild(span);
+
   return td;
 };
 

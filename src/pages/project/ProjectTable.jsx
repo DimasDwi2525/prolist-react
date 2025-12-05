@@ -697,6 +697,8 @@ export default function ProjectTable() {
                 .filter((i) => i !== null),
               indicators: true,
             }}
+            contextMenu={["copy"]}
+            copyPaste={true}
             // Removed afterChange prop to disable inline editing
           />
         </div>

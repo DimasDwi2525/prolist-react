@@ -631,22 +631,6 @@ export default function MainLayout({ children }) {
         });
         setIsMessageNotificationOpen(true);
 
-        // Also add to notifications list
-        const notification = {
-          id: e.message_id,
-          type: "user_message",
-          data: {
-            message: e.message,
-            message_id: e.message_id,
-            timestamp: e.timestamp,
-            type: e.type,
-            target: e.target,
-          },
-          read_at: null,
-          created_at: e.timestamp,
-        };
-        setNotifications((prev) => [notification, ...prev]);
-
         playNotificationSound();
         toast.success("New message received", { duration: 5000 });
       })
@@ -677,22 +661,6 @@ export default function MainLayout({ children }) {
             messageId: e.message_id,
           });
           setIsMessageNotificationOpen(true);
-
-          // Also add to notifications list
-          const notification = {
-            id: e.message_id,
-            type: "role_message",
-            data: {
-              message: e.message,
-              message_id: e.message_id,
-              timestamp: e.timestamp,
-              type: e.type,
-              target: e.target,
-            },
-            read_at: null,
-            created_at: e.timestamp,
-          };
-          setNotifications((prev) => [notification, ...prev]);
 
           playNotificationSound();
           toast.success("New message received", { duration: 5000 });

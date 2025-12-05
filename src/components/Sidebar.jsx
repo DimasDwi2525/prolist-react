@@ -121,6 +121,26 @@ const menuByRole = {
           path: "/taxes",
           icon: <FaTasks />,
         },
+        {
+          name: "Status Material Request",
+          path: "/status-material-request",
+          icon: <FaTasks />,
+        },
+        {
+          name: "Type Packing List",
+          path: "/type-packing-list",
+          icon: <FaTasks />,
+        },
+        {
+          name: "Expedition",
+          path: "/expedition",
+          icon: <FaTasks />,
+        },
+        {
+          name: "Destination",
+          path: "/destination",
+          icon: <FaTasks />,
+        },
       ],
     },
     {

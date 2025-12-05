@@ -45,6 +45,7 @@ export default function ViewPhcModal({
   const [pdfUrl, setPdfUrl] = useState("");
   const [pdfLoading, setPdfLoading] = useState(false);
   const [pdfError, setPdfError] = useState(false);
+  const [numPages, setNumPages] = useState(null);
   const [pinModalOpen, setPinModalOpen] = useState(false);
   const [pin, setPin] = useState("");
   const token = getToken();
@@ -763,11 +764,16 @@ export default function ViewPhcModal({
             >
               <Document
                 file={pdfUrl}
-                onLoadSuccess={() => setPdfLoading(false)}
+                onLoadSuccess={({ numPages }) => {
+                  setNumPages(numPages);
+                  setPdfLoading(false);
+                }}
                 onLoadError={() => setPdfError(true)}
                 loading={<CircularProgress />}
               >
-                <Page pageNumber={1} />
+                {Array.from(new Array(numPages), (el, index) => (
+                  <Page key={`page_${index + 1}`} pageNumber={index + 1} />
+                ))}
               </Document>
             </Box>
           )}

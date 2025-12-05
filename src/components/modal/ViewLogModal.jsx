@@ -177,21 +177,57 @@ export default function ViewLogModal({
                     <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider">
                       {item.label}
                     </h3>
-                    <p className="mt-1 text-sm font-medium text-gray-900">
+                    <div className="mt-1 text-sm font-medium text-gray-900">
                       {display(item.value)}
-                    </p>
+                    </div>
                   </div>
                 ))}
               </div>
             </section>
 
+            {/* Project Information */}
+            {log.project && (
+              <section className="mb-6">
+                <h2 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">
+                  📋 Project Information
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {[
+                    { label: "Project Name", value: log.project.project_name },
+                    {
+                      label: "Project Number",
+                      value: log.project.project_number,
+                    },
+                    {
+                      label: "Client Name",
+                      value:
+                        log.project.client?.name ||
+                        log.project.quotation?.client?.name,
+                    },
+                  ].map((item) => (
+                    <div
+                      key={item.label}
+                      className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200 hover:shadow-md transition-shadow"
+                    >
+                      <h3 className="text-xs font-medium text-blue-700 uppercase tracking-wider mb-1">
+                        {item.label}
+                      </h3>
+                      <p className="text-sm font-semibold text-gray-900">
+                        {display(item.value)}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
             {/* Log Details */}
             <section className="mb-6">
               <h2 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">
-                Log Details
+                📝 Log Details
               </h2>
-              <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                <p className="text-sm font-medium text-gray-900 whitespace-pre-wrap">
+              <div className="bg-gradient-to-r from-gray-50 to-slate-50 p-6 rounded-lg border border-gray-200 shadow-sm">
+                <p className="text-sm font-medium text-gray-900 whitespace-pre-wrap leading-relaxed">
                   {display(log.logs)}
                 </p>
               </div>

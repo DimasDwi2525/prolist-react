@@ -287,6 +287,59 @@ export default function QuotationTable() {
     return td;
   };
 
+  const statusMap = {
+    A: "[A] ✓ Completed",
+    D: "[D] ⏳ No PO Yet",
+    E: "[E] ❌ Cancelled",
+    F: "[F] ⚠️ Lost Bid",
+    O: "[O] 🕒 On Going",
+  };
+
+  // Custom status editor to display long labels in dropdown
+  const statusEditor = Handsontable.editors.DropdownEditor.prototype.extend();
+
+  statusEditor.prototype.prepare = function (
+    row,
+    col,
+    prop,
+    td,
+    originalValue,
+    cellProperties
+  ) {
+    // Call parent prepare
+    Handsontable.editors.DropdownEditor.prototype.prepare.call(
+      this,
+      row,
+      col,
+      prop,
+      td,
+      originalValue,
+      cellProperties
+    );
+    // Set source to long labels
+    this.cellProperties.source = Object.values(statusMap);
+  };
+
+  statusEditor.prototype.getValue = function () {
+    const selectedLabel =
+      Handsontable.editors.DropdownEditor.prototype.getValue.apply(
+        this,
+        arguments
+      );
+    // Return the key (short code) based on selected label
+    for (const [key, label] of Object.entries(statusMap)) {
+      if (label === selectedLabel) {
+        return key;
+      }
+    }
+    return selectedLabel; // fallback
+  };
+
+  statusEditor.prototype.setValue = function (value) {
+    const label = statusMap[value] || value;
+    Handsontable.editors.DropdownEditor.prototype.setValue.call(this, label);
+  };
+
   const actionsRenderer = (instance, td, row) => {
     td.innerHTML = "";
 
@@ -425,20 +478,11 @@ export default function QuotationTable() {
       {
         data: "status",
         title: "Status",
-        type: "dropdown",
-        source: ["A", "D", "E", "F", "O"], // daftar kode status yang valid
+        editor: statusEditor,
         strict: true,
         allowInvalid: false,
         width: 180,
         renderer: (instance, td, row, col, prop, value) => {
-          const statusMap = {
-            A: "[A] ✓ Completed",
-            D: "[D] ⏳ No PO Yet",
-            E: "[E] ❌ Cancelled",
-            F: "[F] ⚠️ Lost Bid",
-            O: "[O] 🕒 On Going",
-          };
-
           // Bersihkan konten lama
           td.innerHTML = "";
           td.style.textAlign = "center";

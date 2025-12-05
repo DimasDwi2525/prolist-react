@@ -612,6 +612,7 @@ export default function MaterialRequestTable() {
                 .filter((i) => i !== null),
               indicators: true,
             }}
+            contextMenu={["copy"]}
           />
         </div>
       </div>
